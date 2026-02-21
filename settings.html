@@ -21,6 +21,36 @@
 
   <div class="settings-container">
 
+    <!-- ── PROFIL ── -->
+    <div class="settings-section">
+      <h3 class="settings-section-title">Profil</h3>
+
+      <!-- Avatar avec upload photo -->
+      <div class="settings-avatar-wrap">
+        <div class="settings-avatar" id="settings-avatar">
+          <span id="settings-initials"></span>
+          <div class="settings-avatar-overlay"><i data-lucide="camera"></i></div>
+        </div>
+        <input type="file" id="settings-photo-input" accept="image/*" hidden>
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">Nom</span>
+        <input class="settings-text-input" type="text" id="settings-name" placeholder="Ton prénom">
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">Pseudo</span>
+        <input class="settings-text-input" type="text" id="settings-username" placeholder="pseudo">
+      </div>
+
+      <div class="settings-row" id="settings-save-row" style="flex-direction:column;align-items:stretch;gap:8px;display:none">
+        <p class="settings-save-msg" id="profil-save-msg" style="display:none"></p>
+        <button class="btn-primary" id="settings-profil-save">Enregistrer</button>
+      </div>
+    </div>
+
+    <!-- ── UNITÉS ── -->
     <div class="settings-section">
       <h3 class="settings-section-title">Unités</h3>
 
@@ -45,6 +75,7 @@
       </div>
     </div>
 
+    <!-- ── EXERCICES ── -->
     <div class="settings-section">
       <h3 class="settings-section-title">Exercices</h3>
 
@@ -60,6 +91,7 @@
       </div>
     </div>
 
+    <!-- ── RÉCUPÉRATION ── -->
     <div class="settings-section">
       <h3 class="settings-section-title">Récupération</h3>
 
@@ -91,9 +123,9 @@
           </button>
         </div>
       </div>
-
     </div>
 
+    <!-- ── COMPTE ── -->
     <div class="settings-section" style="margin-top:8px">
       <div class="settings-row">
         <div class="settings-row-info">
@@ -120,6 +152,130 @@
     lucide.createIcons();
   </script>
   <script src="js/settings.js"></script>
+
+  <script>
+    // ── PROFIL SECTION ──
+    const settingsAvatar    = document.getElementById('settings-avatar');
+    const settingsInitials  = document.getElementById('settings-initials');
+    const settingsPhotoInput = document.getElementById('settings-photo-input');
+    const settingsName      = document.getElementById('settings-name');
+    const settingsUsername  = document.getElementById('settings-username');
+    const profilSaveMsg     = document.getElementById('profil-save-msg');
+
+    function getInitials(name) {
+      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    }
+
+    const saveRow = document.getElementById('settings-save-row');
+    let refName     = localStorage.getItem('imaz_profil_name') || '';
+    let refUsername = localStorage.getItem('imaz_profil_username') || '';
+
+    function loadSettingsProfile() {
+      const name     = localStorage.getItem('imaz_profil_name') || '';
+      const photo    = localStorage.getItem('imaz_profil_photo') || '';
+      const username = localStorage.getItem('imaz_profil_username') || '';
+
+      settingsName.value     = name;
+      settingsUsername.value = username;
+
+      if (photo) {
+        settingsAvatar.style.backgroundImage    = `url(${photo})`;
+        settingsAvatar.style.backgroundSize     = 'cover';
+        settingsAvatar.style.backgroundPosition = 'center';
+        settingsInitials.textContent = '';
+      } else {
+        settingsAvatar.style.backgroundImage = '';
+        settingsInitials.textContent = name ? getInitials(name) : '';
+      }
+    }
+    loadSettingsProfile();
+
+    // Affiche le bouton Enregistrer seulement si changement détecté
+    function checkChanges() {
+      const changed = settingsName.value.trim() !== refName ||
+                      settingsUsername.value.trim() !== refUsername;
+      saveRow.style.display = changed ? '' : 'none';
+    }
+    settingsName.addEventListener('input', checkChanges);
+    settingsUsername.addEventListener('input', () => {
+      const pos = settingsUsername.selectionStart;
+      settingsUsername.value = settingsUsername.value.toLowerCase();
+      settingsUsername.setSelectionRange(pos, pos);
+      checkChanges();
+    });
+
+    // Photo upload
+    settingsAvatar.addEventListener('click', () => settingsPhotoInput.click());
+    settingsPhotoInput.addEventListener('change', () => {
+      const file = settingsPhotoInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 200;
+          canvas.width = size; canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width  - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          localStorage.setItem('imaz_profil_photo', dataUrl);
+          loadSettingsProfile();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Save
+    document.getElementById('settings-profil-save').addEventListener('click', async () => {
+      const name     = settingsName.value.trim();
+      const username = settingsUsername.value.trim().toLowerCase();
+      const photo    = localStorage.getItem('imaz_profil_photo') || '';
+
+      if (!username) {
+        showProfilMsg('Le pseudo ne peut pas être vide.', 'error');
+        return;
+      }
+
+      // Vérifie unicité du pseudo (en excluant l'utilisateur courant)
+      const { data: { user } } = await _supabase.auth.getUser();
+      const currentUsername = localStorage.getItem('imaz_profil_username') || '';
+      if (username !== currentUsername) {
+        const { data: existing } = await _supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('username', username)
+          .neq('user_id', user.id)
+          .maybeSingle();
+        if (existing) {
+          showProfilMsg('Ce pseudo est déjà pris.', 'error');
+          return;
+        }
+      }
+
+      localStorage.setItem('imaz_profil_name',     name);
+      localStorage.setItem('imaz_profil_username', username);
+
+      syncProfileToSupabase({ name, photo, username });
+
+      refName     = name;
+      refUsername = username;
+      loadSettingsProfile();
+      showProfilMsg('Profil enregistré !', 'success');
+      setTimeout(() => { saveRow.style.display = 'none'; }, 3000);
+    });
+
+    function showProfilMsg(msg, type) {
+      profilSaveMsg.textContent = msg;
+      profilSaveMsg.className = `settings-save-msg ${type}`;
+      profilSaveMsg.style.display = '';
+      setTimeout(() => { profilSaveMsg.style.display = 'none'; }, 3000);
+    }
+  </script>
 
 </body>
 </html>

@@ -45,13 +45,15 @@ async function loadFromSupabase() {
   // Profile
   const { data: profileRow } = await _supabase
     .from('profiles')
-    .select('name, photo')
+    .select('name, photo, username, role')
     .eq('user_id', user.id)
     .single();
 
   if (profileRow) {
-    if (profileRow.name) localStorage.setItem('imaz_profil_name',  profileRow.name);
-    if (profileRow.photo) localStorage.setItem('imaz_profil_photo', profileRow.photo);
+    if (profileRow.name)     localStorage.setItem('imaz_profil_name',     profileRow.name);
+    if (profileRow.photo)    localStorage.setItem('imaz_profil_photo',    profileRow.photo);
+    if (profileRow.username) localStorage.setItem('imaz_profil_username', profileRow.username);
+    if (profileRow.role)     localStorage.setItem('imaz_profil_role',     profileRow.role);
   }
 }
 
@@ -84,13 +86,15 @@ async function syncSettingsToSupabase(data) {
   );
 }
 
-async function syncProfileToSupabase(name, photo) {
+async function syncProfileToSupabase({ name, photo, username, role } = {}) {
   const { data: { user } } = await _supabase.auth.getUser();
   if (!user) return;
-  await _supabase.from('profiles').upsert(
-    { user_id: user.id, name, photo, updated_at: new Date().toISOString() },
-    { onConflict: 'user_id' }
-  );
+  const payload = { user_id: user.id, updated_at: new Date().toISOString() };
+  if (name     !== undefined) payload.name     = name;
+  if (photo    !== undefined) payload.photo    = photo;
+  if (username !== undefined) payload.username = username;
+  if (role     !== undefined) payload.role     = role;
+  await _supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
 }
 
 // ── LOGOUT ────────────────────────────────────────────────
@@ -100,5 +104,6 @@ async function logout() {
   localStorage.removeItem('imaz_settings');
   localStorage.removeItem('imaz_profil_name');
   localStorage.removeItem('imaz_profil_photo');
+  localStorage.removeItem('imaz_profil_username');
   window.location.href = 'login.html';
 }

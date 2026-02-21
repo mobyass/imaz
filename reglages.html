@@ -21,20 +21,13 @@
     </button>
   </header>
 
-  <!-- ── HERO ── -->
+  <!-- ── HERO (lecture seule) ── -->
   <div class="profil-hero">
-    <div class="profil-avatar" id="profil-avatar">
+    <div class="profil-avatar" id="profil-avatar" style="cursor:default">
       <span id="profil-initials"></span>
-      <input type="file" id="profil-photo-input" accept="image/*" hidden>
     </div>
     <div class="profil-name" id="profil-name-display">Mon Profil</div>
-    <button class="profil-edit-btn" id="profil-edit-btn">
-      <i data-lucide="pencil"></i> Modifier
-    </button>
-    <div class="profil-edit-panel" id="profil-edit-panel" hidden>
-      <input type="text" class="profil-name-input" id="profil-name-input" placeholder="Ton prénom">
-      <button class="btn-primary profil-save-btn" id="profil-save-btn">Enregistrer</button>
-    </div>
+    <div class="profil-username-sub" id="profil-username-display"></div>
   </div>
 
   <!-- ── CETTE SEMAINE ── -->
@@ -89,73 +82,31 @@
   <script>
     lucide.createIcons();
 
-    // ── NOM + PHOTO ──
-    const nameDisplay  = document.getElementById('profil-name-display');
-    const initialsEl   = document.getElementById('profil-initials');
-    const nameInput    = document.getElementById('profil-name-input');
-    const editPanel    = document.getElementById('profil-edit-panel');
-    const avatarEl     = document.getElementById('profil-avatar');
-    const photoInput   = document.getElementById('profil-photo-input');
-
+    // ── AFFICHAGE PROFIL (lecture seule) ──
     function getInitials(name) {
       return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
     }
 
     function loadProfile() {
-      const name  = localStorage.getItem('imaz_profil_name') || '';
-      const photo = localStorage.getItem('imaz_profil_photo') || '';
-      nameDisplay.textContent = name || 'Mon Profil';
-      nameInput.value = name;
+      const name     = localStorage.getItem('imaz_profil_name') || '';
+      const photo    = localStorage.getItem('imaz_profil_photo') || '';
+      const username = localStorage.getItem('imaz_profil_username') || '';
+      const avatarEl = document.getElementById('profil-avatar');
+
+      document.getElementById('profil-name-display').textContent = name || 'Mon Profil';
+      document.getElementById('profil-username-display').textContent = username ? `@${username}` : '';
+
       if (photo) {
-        avatarEl.style.backgroundImage = `url(${photo})`;
-        avatarEl.style.backgroundSize  = 'cover';
+        avatarEl.style.backgroundImage    = `url(${photo})`;
+        avatarEl.style.backgroundSize     = 'cover';
         avatarEl.style.backgroundPosition = 'center';
-        initialsEl.textContent = '';
+        document.getElementById('profil-initials').textContent = '';
       } else {
         avatarEl.style.backgroundImage = '';
-        initialsEl.textContent = name ? getInitials(name) : '';
+        document.getElementById('profil-initials').textContent = name ? getInitials(name) : '';
       }
     }
     loadProfile();
-
-    avatarEl.addEventListener('click', () => photoInput.click());
-    photoInput.addEventListener('change', () => {
-      const file = photoInput.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const size = 200;
-          canvas.width = size; canvas.height = size;
-          const ctx = canvas.getContext('2d');
-          const minDim = Math.min(img.width, img.height);
-          const sx = (img.width  - minDim) / 2;
-          const sy = (img.height - minDim) / 2;
-          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          localStorage.setItem('imaz_profil_photo', dataUrl);
-          loadProfile();
-          const name = localStorage.getItem('imaz_profil_name') || '';
-          if (typeof syncProfileToSupabase === 'function') syncProfileToSupabase(name, dataUrl);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    document.getElementById('profil-edit-btn').addEventListener('click', () => {
-      editPanel.hidden = !editPanel.hidden;
-    });
-    document.getElementById('profil-save-btn').addEventListener('click', () => {
-      const val = nameInput.value.trim();
-      localStorage.setItem('imaz_profil_name', val);
-      loadProfile();
-      editPanel.hidden = true;
-      const photo = localStorage.getItem('imaz_profil_photo') || '';
-      if (typeof syncProfileToSupabase === 'function') syncProfileToSupabase(val, photo);
-    });
 
     // ── STATS SEMAINE ──
     function getWeekBounds() {
@@ -185,7 +136,6 @@
         }
       });
 
-      // Week date range label (e.g. "17 – 22 fév" or "23 fév – 1 mars")
       const mon = parseKey(monKey), sun = parseKey(sunKey);
       const weekRange = mon.getMonth() === sun.getMonth()
         ? `${mon.getDate()} – ${sun.getDate()} ${MONTHS_SHORT[sun.getMonth()]}`
@@ -227,7 +177,7 @@
         Object.entries(sessions).forEach(([key, s]) => {
           if (key >= wMonKey && key <= wSunKey && s.completed) count++;
         });
-        weeks.push({ count, monthIdx: wMon.getMonth(), isCurrent: w === 0 });
+        weeks.push({ count, monthIdx: wMon.getMonth() });
       }
 
       const maxCount = Math.max(...weeks.map(w => w.count), 1);
@@ -241,12 +191,11 @@
       svg.innerHTML = '';
       labelsEl.innerHTML = '';
 
-      // Draw bars
       weeks.forEach((week, i) => {
         const barH = week.count > 0
           ? Math.max((week.count / maxCount) * maxBarH, 6) : 3;
-        const x  = gap + i * (barW + gap);
-        const y  = H - barH;
+        const x    = gap + i * (barW + gap);
+        const y    = H - barH;
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', x);
         rect.setAttribute('y', y);
@@ -258,7 +207,6 @@
         svg.appendChild(rect);
       });
 
-      // Month labels in HTML — one per group, centered, no SVG distortion
       let i = 0;
       while (i < weeks.length) {
         const monthIdx = weeks[i].monthIdx;

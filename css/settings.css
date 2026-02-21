@@ -369,6 +369,86 @@
 
 .profil-link-arrow { color: var(--text-muted); flex-shrink: 0; }
 
+/* ── PROFIL ROLE BADGE ── */
+.profil-role-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 20px;
+  padding: 3px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.profil-username-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── SETTINGS PROFIL SECTION ── */
+.settings-avatar-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px 8px;
+}
+
+.settings-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent);
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.settings-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.settings-avatar:hover .settings-avatar-overlay { opacity: 1; }
+.settings-avatar-overlay svg { width: 22px; height: 22px; color: white; }
+
+.settings-text-input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  width: 150px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.settings-text-input:focus { border-color: var(--accent); outline: none; }
+
+.settings-save-msg {
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+}
+.settings-save-msg.success { color: var(--accent); }
+.settings-save-msg.error   { color: #e53e3e; }
+
 /* ── ACTIVITÉS PAGE ── */
 .activites-list {
   padding: 4px 16px 40px;

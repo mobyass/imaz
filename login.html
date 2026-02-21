@@ -20,12 +20,10 @@
       max-width: 360px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
     }
 
-    .login-logo {
-      text-align: center;
-    }
+    .login-logo { text-align: center; }
 
     .login-logo-text {
       font-size: 32px;
@@ -70,25 +68,81 @@
     .login-form {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
+
+    .login-field { position: relative; }
 
     .login-input {
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 13px 14px;
+      padding: 13px 44px 13px 14px;
       color: var(--text);
       font-size: 15px;
       width: 100%;
+      box-sizing: border-box;
     }
 
-    .login-input:focus {
-      border-color: var(--accent);
-      outline: none;
-    }
+    .login-input.no-icon { padding-right: 14px; }
+
+    .login-input:focus { border-color: var(--accent); outline: none; }
 
     .login-input::placeholder { color: var(--text-muted); }
+
+    .login-eye {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      line-height: 1;
+    }
+    .login-eye svg { width: 18px; height: 18px; }
+
+    /* ── Choix du rôle ── */
+    .login-role-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .login-role-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .login-role-opt {
+      flex: 1;
+      background: var(--surface-2);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .login-role-opt.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .login-role-opt svg { width: 22px; height: 22px; }
 
     .login-error {
       font-size: 13px;
@@ -97,9 +151,7 @@
       min-height: 18px;
     }
 
-    .login-submit {
-      margin-top: 4px;
-    }
+    .login-submit { margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -117,57 +169,134 @@
     </div>
 
     <div class="login-form">
-      <input class="login-input" type="email"    id="input-email"    placeholder="Adresse e-mail" autocomplete="email">
-      <input class="login-input" type="password" id="input-password" placeholder="Mot de passe"   autocomplete="current-password">
+
+      <!-- Pseudo (inscription uniquement) -->
+      <div class="login-field" id="field-username" style="display:none">
+        <input class="login-input no-icon" type="text" id="input-username"
+               placeholder="Pseudo (unique)" autocomplete="username">
+      </div>
+
+      <!-- Email -->
+      <div class="login-field">
+        <input class="login-input no-icon" type="email" id="input-email"
+               placeholder="Adresse e-mail" autocomplete="email">
+      </div>
+
+      <!-- Mot de passe -->
+      <div class="login-field">
+        <input class="login-input" type="password" id="input-password"
+               placeholder="Mot de passe" autocomplete="current-password">
+        <button class="login-eye" id="toggle-pw" type="button">
+          <i data-lucide="eye"></i>
+        </button>
+      </div>
+
+      <!-- Confirmation (inscription uniquement) -->
+      <div class="login-field" id="field-confirm" style="display:none">
+        <input class="login-input" type="password" id="input-confirm"
+               placeholder="Confirmer le mot de passe" autocomplete="new-password">
+        <button class="login-eye" id="toggle-confirm" type="button">
+          <i data-lucide="eye"></i>
+        </button>
+      </div>
+
       <div class="login-error" id="login-error"></div>
       <button class="btn-primary login-submit" id="btn-submit">Se connecter</button>
-    </div>
 
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
+    lucide.createIcons();
+
     // Redirect to app if already logged in
     _supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) window.location.href = 'imaz.html';
     });
 
-    let mode = 'login'; // 'login' | 'signup'
+    let mode = 'login';
 
-    const tabLogin  = document.getElementById('tab-login');
-    const tabSignup = document.getElementById('tab-signup');
-    const btnSubmit = document.getElementById('btn-submit');
-    const errEl     = document.getElementById('login-error');
-    const pwInput   = document.getElementById('input-password');
+    const tabLogin      = document.getElementById('tab-login');
+    const tabSignup     = document.getElementById('tab-signup');
+    const btnSubmit     = document.getElementById('btn-submit');
+    const errEl         = document.getElementById('login-error');
+    const pwInput       = document.getElementById('input-password');
+    const confirmInput  = document.getElementById('input-confirm');
+    const usernameInput = document.getElementById('input-username');
+    const fieldUsername = document.getElementById('field-username');
+    const fieldConfirm  = document.getElementById('field-confirm');
 
-    tabLogin.addEventListener('click', () => {
-      mode = 'login';
-      tabLogin.classList.add('active');
-      tabSignup.classList.remove('active');
-      btnSubmit.textContent = 'Se connecter';
-      pwInput.autocomplete = 'current-password';
+    function setMode(m) {
+      mode = m;
+      const isSignup = m === 'signup';
+      tabLogin.classList.toggle('active', !isSignup);
+      tabSignup.classList.toggle('active',  isSignup);
+      btnSubmit.textContent = isSignup ? "S'inscrire" : 'Se connecter';
+      pwInput.autocomplete  = isSignup ? 'new-password' : 'current-password';
+      fieldUsername.style.display = isSignup ? '' : 'none';
+      fieldConfirm.style.display  = isSignup ? '' : 'none';
       errEl.textContent = '';
+    }
+
+    tabLogin.addEventListener('click',  () => setMode('login'));
+    tabSignup.addEventListener('click', () => setMode('signup'));
+
+    // Force lowercase sur le pseudo
+    usernameInput.addEventListener('input', () => {
+      const pos = usernameInput.selectionStart;
+      usernameInput.value = usernameInput.value.toLowerCase();
+      usernameInput.setSelectionRange(pos, pos);
     });
 
-    tabSignup.addEventListener('click', () => {
-      mode = 'signup';
-      tabSignup.classList.add('active');
-      tabLogin.classList.remove('active');
-      btnSubmit.textContent = "S'inscrire";
-      pwInput.autocomplete = 'new-password';
-      errEl.textContent = '';
-    });
+    // ── Eye toggles ──
+    function makeEyeToggle(btnId, input) {
+      document.getElementById(btnId).addEventListener('click', () => {
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        const icon = document.querySelector(`#${btnId} i`);
+        icon.setAttribute('data-lucide', show ? 'eye-off' : 'eye');
+        lucide.createIcons();
+      });
+    }
+    makeEyeToggle('toggle-pw',      pwInput);
+    makeEyeToggle('toggle-confirm', confirmInput);
 
+    // ── Submit ──
     btnSubmit.addEventListener('click', async () => {
       const email    = document.getElementById('input-email').value.trim();
       const password = pwInput.value;
+      const confirm  = confirmInput.value;
+      const username = usernameInput.value.trim().toLowerCase();
       errEl.textContent = '';
 
       if (!email || !password) {
         errEl.textContent = 'Remplis tous les champs.';
         return;
+      }
+
+      if (mode === 'signup') {
+        if (!username) {
+          errEl.textContent = 'Choisis un pseudo.';
+          return;
+        }
+        if (password !== confirm) {
+          errEl.textContent = 'Les mots de passe ne correspondent pas.';
+          return;
+        }
+        // Vérifie que le pseudo n'est pas déjà pris
+        const { data: existing } = await _supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('username', username)
+          .maybeSingle();
+        if (existing) {
+          errEl.textContent = 'Ce pseudo est déjà pris.';
+          return;
+        }
       }
 
       btnSubmit.disabled = true;
@@ -176,22 +305,39 @@
       if (mode === 'login') {
         const { error } = await _supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          errEl.textContent = 'Email ou mot de passe incorrect.';
+          const msg = error.message.includes('Email not confirmed')
+            ? 'Email non confirmé. Désactive la confirmation dans Supabase.'
+            : 'Email ou mot de passe incorrect.';
+          errEl.textContent = msg;
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Se connecter';
           return;
         }
       } else {
-        const { error } = await _supabase.auth.signUp({ email, password });
+        const { data: signupData, error } = await _supabase.auth.signUp({ email, password });
         if (error) {
           errEl.textContent = error.message;
           btnSubmit.disabled = false;
           btnSubmit.textContent = "S'inscrire";
           return;
         }
+        // Enregistre le pseudo dès l'inscription
+        if (signupData.user) {
+          const { error: profileError } = await _supabase.from('profiles').upsert(
+            { user_id: signupData.user.id, username, name: username, photo: '', updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+          );
+          if (profileError && (profileError.code === '23505' || profileError.message?.includes('unique'))) {
+            errEl.textContent = 'Ce pseudo est déjà pris. Choisis-en un autre.';
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = "S'inscrire";
+            return;
+          }
+          localStorage.setItem('imaz_profil_username', username);
+          localStorage.setItem('imaz_profil_name',     username);
+        }
       }
 
-      // Load cloud data into localStorage, then go to app
       await loadFromSupabase();
       window.location.href = 'imaz.html';
     });
