@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .login-logo {
+      text-align: center;
+    }
+
+    .login-logo-text {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: var(--accent);
+    }
+
+    .login-logo-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .login-tabs {
+      display: flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .login-tab {
+      flex: 1;
+      background: none;
+      border: none;
+      border-radius: 7px;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .login-tab.active {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .login-input {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 14px;
+      color: var(--text);
+      font-size: 15px;
+      width: 100%;
+    }
+
+    .login-input:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .login-input::placeholder { color: var(--text-muted); }
+
+    .login-error {
+      font-size: 13px;
+      color: #e53e3e;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .login-submit {
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+
+    <div class="login-logo">
+      <div class="login-logo-text">Imaz</div>
+      <div class="login-logo-sub">Ton carnet d'entraînement</div>
+    </div>
+
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-login">Connexion</button>
+      <button class="login-tab"        id="tab-signup">Inscription</button>
+    </div>
+
+    <div class="login-form">
+      <input class="login-input" type="email"    id="input-email"    placeholder="Adresse e-mail" autocomplete="email">
+      <input class="login-input" type="password" id="input-password" placeholder="Mot de passe"   autocomplete="current-password">
+      <div class="login-error" id="login-error"></div>
+      <button class="btn-primary login-submit" id="btn-submit">Se connecter</button>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Redirect to app if already logged in
+    _supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'imaz.html';
+    });
+
+    let mode = 'login'; // 'login' | 'signup'
+
+    const tabLogin  = document.getElementById('tab-login');
+    const tabSignup = document.getElementById('tab-signup');
+    const btnSubmit = document.getElementById('btn-submit');
+    const errEl     = document.getElementById('login-error');
+    const pwInput   = document.getElementById('input-password');
+
+    tabLogin.addEventListener('click', () => {
+      mode = 'login';
+      tabLogin.classList.add('active');
+      tabSignup.classList.remove('active');
+      btnSubmit.textContent = 'Se connecter';
+      pwInput.autocomplete = 'current-password';
+      errEl.textContent = '';
+    });
+
+    tabSignup.addEventListener('click', () => {
+      mode = 'signup';
+      tabSignup.classList.add('active');
+      tabLogin.classList.remove('active');
+      btnSubmit.textContent = "S'inscrire";
+      pwInput.autocomplete = 'new-password';
+      errEl.textContent = '';
+    });
+
+    btnSubmit.addEventListener('click', async () => {
+      const email    = document.getElementById('input-email').value.trim();
+      const password = pwInput.value;
+      errEl.textContent = '';
+
+      if (!email || !password) {
+        errEl.textContent = 'Remplis tous les champs.';
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = '…';
+
+      if (mode === 'login') {
+        const { error } = await _supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          errEl.textContent = 'Email ou mot de passe incorrect.';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Se connecter';
+          return;
+        }
+      } else {
+        const { error } = await _supabase.auth.signUp({ email, password });
+        if (error) {
+          errEl.textContent = error.message;
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = "S'inscrire";
+          return;
+        }
+      }
+
+      // Load cloud data into localStorage, then go to app
+      await loadFromSupabase();
+      window.location.href = 'imaz.html';
+    });
+  </script>
+
+</body>
+</html>

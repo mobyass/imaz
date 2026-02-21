@@ -1,0 +1,342 @@
+/* ── CALENDAR ── */
+.calendar-section {
+  background: var(--surface);
+  margin: 0 16px 16px;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.calendar-nav span {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.cal-arrow {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.week-day.past { opacity: 0.35; cursor: default; }
+.week-day.past:hover .day-num { background: none; }
+.week-day.past.has-seance { cursor: pointer; }
+.week-day.past.has-seance:hover .day-num { background: var(--surface-2); }
+
+.week-day .day-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.week-day .day-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.week-day:not(.past):hover .day-num { background: var(--surface-2); }
+
+.week-day.today .day-num {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+}
+
+.week-day.has-seance .day-num::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.week-day.today.has-seance .day-num::after { background: white; }
+
+/* ── SECTIONS ── */
+.section { padding: 0 16px 16px; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-header h2 { font-size: 16px; font-weight: 700; }
+
+/* ── SÉANCE DU JOUR ── */
+.seance-today {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.seance-today .empty-icon svg { width: 36px; height: 36px; opacity: 0.3; }
+.seance-today p { color: var(--text-muted); font-size: 13px; }
+
+/* ── SÉANCES À VENIR ── */
+.seances-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seance-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.seance-card:hover { border-color: var(--accent); }
+
+.seance-card .seance-icon {
+  background: var(--accent-dim);
+  color: var(--accent);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.seance-card .seance-info { flex: 1; }
+
+.seance-card .seance-info strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.seance-card .seance-info span { font-size: 12px; color: var(--text-muted); }
+.seance-card .seance-arrow { color: var(--text-muted); }
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 16px;
+}
+
+/* ── SCHEDULE BUTTON ── */
+.btn-schedule {
+  background: var(--accent-dim);
+  border: 1px solid rgba(79, 142, 247, 0.35);
+  border-radius: 20px;
+  padding: 5px 12px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s;
+}
+
+.btn-schedule:hover { background: rgba(79, 142, 247, 0.25); }
+.btn-schedule svg { width: 13px; height: 13px; }
+
+/* ── PAGE HOME: layout ── */
+#page-home {
+  overflow-y: auto;
+  flex-direction: column;
+}
+
+/* ── SEANCE LOG ── */
+.seance-log {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.seance-log-exo {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 10px 8px;
+}
+
+.log-exo-name {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.log-table-head,
+.log-table-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 1fr 44px 30px;
+  gap: 4px;
+  align-items: center;
+}
+
+.log-table-head { margin-bottom: 4px; }
+
+.log-table-head span {
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.log-table-row { margin-bottom: 4px; }
+
+.log-set-num {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.log-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 2px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.log-input:focus { border-color: var(--accent); outline: none; }
+.log-input::placeholder { color: var(--text-muted); }
+.log-input[readonly] { opacity: 0.5; border-color: transparent; background: transparent; }
+
+.log-validate-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.log-validate-btn:hover { color: var(--accent); }
+.log-validate-btn.done { color: var(--accent); }
+.log-validate-btn svg { width: 18px; height: 18px; }
+
+.log-table-row.validated .log-input {
+  opacity: 0.45;
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Without rest */
+.log-table.log-table--norest .log-table-head,
+.log-table.log-table--norest .log-table-row {
+  grid-template-columns: 22px 1fr 1fr 30px;
+}
+
+/* Readonly (completed view) */
+.log-table--readonly .log-table-head,
+.log-table--readonly .log-table-row {
+  grid-template-columns: 22px 1fr 1fr;
+}
+
+.log-val-text { text-align: center; font-size: 12px; color: var(--text-muted); }
+.log-table-row.validated .log-val-text { color: var(--accent); font-weight: 600; }
+.log-table-row.validated .log-set-num  { color: var(--accent); }
+
+.log-rest-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.log-rest-btn:hover { border-color: var(--accent); color: var(--accent); }
+.log-table-row.validated .log-rest-btn { opacity: 0.4; }
+
+/* Complete / actions */
+.seance-complete-badge {
+  width: 100%;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  color: #34d399;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seance-complete-badge svg { width: 14px; height: 14px; }
+.seance-complete-summary { color: var(--text-muted); font-size: 13px; }
+
+.seance-today-actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+  margin-top: 4px;
+}

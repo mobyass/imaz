@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 80px; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="width:38px"></div>
+    <div class="header-title">Profil</div>
+    <button class="icon-btn" onclick="window.location.href='settings.html'">
+      <i data-lucide="settings"></i>
+    </button>
+  </header>
+
+  <!-- ── HERO ── -->
+  <div class="profil-hero">
+    <div class="profil-avatar" id="profil-avatar">
+      <span id="profil-initials"></span>
+      <input type="file" id="profil-photo-input" accept="image/*" hidden>
+    </div>
+    <div class="profil-name" id="profil-name-display">Mon Profil</div>
+    <button class="profil-edit-btn" id="profil-edit-btn">
+      <i data-lucide="pencil"></i> Modifier
+    </button>
+    <div class="profil-edit-panel" id="profil-edit-panel" hidden>
+      <input type="text" class="profil-name-input" id="profil-name-input" placeholder="Ton prénom">
+      <button class="btn-primary profil-save-btn" id="profil-save-btn">Enregistrer</button>
+    </div>
+  </div>
+
+  <!-- ── CETTE SEMAINE ── -->
+  <div class="profil-section">
+    <h3 class="profil-section-label">Cette semaine <span id="week-range" class="profil-week-range"></span></h3>
+    <div class="profil-stats-row">
+      <div class="profil-stat">
+        <span class="profil-stat-val" id="stat-sessions">0</span>
+        <span class="profil-stat-label">Séances</span>
+      </div>
+      <div class="profil-stat">
+        <span class="profil-stat-val" id="stat-exercises">0</span>
+        <span class="profil-stat-label">Exercices</span>
+      </div>
+      <div class="profil-stat">
+        <span class="profil-stat-val" id="stat-series">0</span>
+        <span class="profil-stat-label">Séries</span>
+      </div>
+    </div>
+    <div class="profil-chart-wrap">
+      <svg class="profil-chart-svg" id="profil-chart-svg" viewBox="0 0 280 64" preserveAspectRatio="none"></svg>
+      <div class="profil-chart-labels" id="profil-chart-labels"></div>
+    </div>
+  </div>
+
+  <!-- ── LIENS ── -->
+  <div class="profil-links">
+    <div class="profil-link-row" onclick="window.location.href='activites.html'">
+      <div class="profil-link-icon"><i data-lucide="activity"></i></div>
+      <div class="profil-link-info">
+        <span class="profil-link-title">Activités</span>
+        <span class="profil-link-sub" id="profil-last-label">—</span>
+      </div>
+      <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+    </div>
+    <div class="profil-link-row">
+      <div class="profil-link-icon"><i data-lucide="bar-chart-2"></i></div>
+      <div class="profil-link-info">
+        <span class="profil-link-title">Statistiques</span>
+        <span class="profil-link-sub" id="profil-total-label">—</span>
+      </div>
+      <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>checkAuth();</script>
+  <script>
+    lucide.createIcons();
+
+    // ── NOM + PHOTO ──
+    const nameDisplay  = document.getElementById('profil-name-display');
+    const initialsEl   = document.getElementById('profil-initials');
+    const nameInput    = document.getElementById('profil-name-input');
+    const editPanel    = document.getElementById('profil-edit-panel');
+    const avatarEl     = document.getElementById('profil-avatar');
+    const photoInput   = document.getElementById('profil-photo-input');
+
+    function getInitials(name) {
+      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    }
+
+    function loadProfile() {
+      const name  = localStorage.getItem('imaz_profil_name') || '';
+      const photo = localStorage.getItem('imaz_profil_photo') || '';
+      nameDisplay.textContent = name || 'Mon Profil';
+      nameInput.value = name;
+      if (photo) {
+        avatarEl.style.backgroundImage = `url(${photo})`;
+        avatarEl.style.backgroundSize  = 'cover';
+        avatarEl.style.backgroundPosition = 'center';
+        initialsEl.textContent = '';
+      } else {
+        avatarEl.style.backgroundImage = '';
+        initialsEl.textContent = name ? getInitials(name) : '';
+      }
+    }
+    loadProfile();
+
+    avatarEl.addEventListener('click', () => photoInput.click());
+    photoInput.addEventListener('change', () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 200;
+          canvas.width = size; canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width  - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          localStorage.setItem('imaz_profil_photo', dataUrl);
+          loadProfile();
+          const name = localStorage.getItem('imaz_profil_name') || '';
+          if (typeof syncProfileToSupabase === 'function') syncProfileToSupabase(name, dataUrl);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('profil-edit-btn').addEventListener('click', () => {
+      editPanel.hidden = !editPanel.hidden;
+    });
+    document.getElementById('profil-save-btn').addEventListener('click', () => {
+      const val = nameInput.value.trim();
+      localStorage.setItem('imaz_profil_name', val);
+      loadProfile();
+      editPanel.hidden = true;
+      const photo = localStorage.getItem('imaz_profil_photo') || '';
+      if (typeof syncProfileToSupabase === 'function') syncProfileToSupabase(val, photo);
+    });
+
+    // ── STATS SEMAINE ──
+    function getWeekBounds() {
+      const today = new Date();
+      const dow   = today.getDay() || 7;
+      const mon   = new Date(today);
+      mon.setDate(today.getDate() - (dow - 1));
+      mon.setHours(0, 0, 0, 0);
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      return { monKey: dateToKey(mon), sunKey: dateToKey(sun) };
+    }
+
+    function computeStats() {
+      const sessions = getSessions();
+      const { monKey, sunKey } = getWeekBounds();
+      const todayKey = dateToKey(new Date());
+      let ses = 0, exo = 0, sets = 0, totalPast = 0, totalCompleted = 0;
+
+      Object.entries(sessions).forEach(([key, s]) => {
+        if (key < todayKey) totalPast++;
+        if (s.completed) totalCompleted++;
+        if (key >= monKey && key <= sunKey && key <= todayKey) {
+          ses++;
+          exo  += (s.exercises || []).length;
+          (s.exercises || []).forEach(e => sets += (e.sets || []).length);
+        }
+      });
+
+      // Week date range label (e.g. "17 – 22 fév" or "23 fév – 1 mars")
+      const mon = parseKey(monKey), sun = parseKey(sunKey);
+      const weekRange = mon.getMonth() === sun.getMonth()
+        ? `${mon.getDate()} – ${sun.getDate()} ${MONTHS_SHORT[sun.getMonth()]}`
+        : `${mon.getDate()} ${MONTHS_SHORT[mon.getMonth()]} – ${sun.getDate()} ${MONTHS_SHORT[sun.getMonth()]}`;
+      document.getElementById('week-range').textContent = weekRange;
+
+      document.getElementById('stat-sessions').textContent  = ses;
+      document.getElementById('stat-exercises').textContent = exo;
+      document.getElementById('stat-series').textContent    = sets;
+
+      document.getElementById('profil-last-label').textContent =
+        totalPast > 0 ? `${totalPast} séance${totalPast !== 1 ? 's' : ''}` : 'Aucune activité';
+      document.getElementById('profil-total-label').textContent =
+        `${totalCompleted} terminée${totalCompleted !== 1 ? 's' : ''}`;
+    }
+    computeStats();
+
+    // ── GRAPHE 8 SEMAINES ──
+    function renderChart() {
+      const sessions = getSessions();
+      const today    = new Date();
+      const dow      = today.getDay() || 7;
+      const curMon   = new Date(today);
+      curMon.setDate(today.getDate() - (dow - 1));
+      curMon.setHours(0, 0, 0, 0);
+
+      const MON = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+      const weeks = [];
+
+      for (let w = 7; w >= 0; w--) {
+        const wMon = new Date(curMon);
+        wMon.setDate(curMon.getDate() - w * 7);
+        const wSun = new Date(wMon);
+        wSun.setDate(wMon.getDate() + 6);
+        const wMonKey = dateToKey(wMon);
+        const wSunKey = dateToKey(wSun);
+
+        let count = 0;
+        Object.entries(sessions).forEach(([key, s]) => {
+          if (key >= wMonKey && key <= wSunKey && s.completed) count++;
+        });
+        weeks.push({ count, monthIdx: wMon.getMonth(), isCurrent: w === 0 });
+      }
+
+      const maxCount = Math.max(...weeks.map(w => w.count), 1);
+      const svg      = document.getElementById('profil-chart-svg');
+      const labelsEl = document.getElementById('profil-chart-labels');
+      const VW = 280, H = 64;
+      const barW    = 22;
+      const gap     = (VW - barW * 8) / 9;
+      const maxBarH = H - 2;
+
+      svg.innerHTML = '';
+      labelsEl.innerHTML = '';
+
+      // Draw bars
+      weeks.forEach((week, i) => {
+        const barH = week.count > 0
+          ? Math.max((week.count / maxCount) * maxBarH, 6) : 3;
+        const x  = gap + i * (barW + gap);
+        const y  = H - barH;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', barW);
+        rect.setAttribute('height', barH);
+        rect.setAttribute('rx', 0);
+        rect.setAttribute('fill', week.count > 0 ? 'var(--accent)' : 'var(--surface-2)');
+        rect.setAttribute('stroke', 'none');
+        svg.appendChild(rect);
+      });
+
+      // Month labels in HTML — one per group, centered, no SVG distortion
+      let i = 0;
+      while (i < weeks.length) {
+        const monthIdx = weeks[i].monthIdx;
+        let j = i;
+        while (j < weeks.length && weeks[j].monthIdx === monthIdx) j++;
+        const cx  = (gap + i * (barW + gap) + barW / 2 + gap + (j - 1) * (barW + gap) + barW / 2) / 2;
+        const pct = (cx / VW * 100).toFixed(2);
+        const span = document.createElement('span');
+        span.textContent = MON[monthIdx];
+        span.style.cssText = `position:absolute;left:${pct}%;transform:translateX(-50%)`;
+        labelsEl.appendChild(span);
+        i = j;
+      }
+    }
+    renderChart();
+  </script>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="window.location.href='imaz.html'">
+      <i data-lucide="home"></i><span>Accueil</span>
+    </button>
+    <button class="nav-btn active">
+      <i data-lucide="user"></i><span>Profil</span>
+    </button>
+  </nav>
+  <script>lucide.createIcons();</script>
+
+</body>
+</html>

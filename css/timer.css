@@ -1,0 +1,138 @@
+/* ── TIMER MODAL ── */
+.timer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.timer-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.timer-modal {
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 28px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  min-width: 250px;
+  transform: scale(0.9) translateY(8px);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.18s ease;
+}
+
+.timer-overlay.active .timer-modal {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.timer-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* ── RING ── */
+.timer-ring-wrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+
+.timer-svg {
+  width: 160px;
+  height: 160px;
+  stroke: none;
+  fill: none;
+  stroke-width: unset;
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.timer-track {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 8;
+}
+
+.timer-progress {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 339.3;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
+}
+
+.timer-overlay.timer-done .timer-progress { stroke: #34d399; }
+
+.timer-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-countdown {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--text);
+}
+
+/* ── BUTTONS ── */
+.timer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.timer-btn-stop {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.timer-btn-stop:hover { border-color: var(--text-muted); }
+
+.timer-btn-pause {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.timer-btn-pause:hover { opacity: 0.85; }
+
+.timer-btn-pause.paused {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}

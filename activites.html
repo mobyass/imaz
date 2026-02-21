@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activités – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Activités</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <div class="activites-list" id="activites-list"></div>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    lucide.createIcons();
+
+    // Uses DAYS_LONG, MONTHS_SHORT, MONTHS, parseKey from core.js
+    function formatDayLabel(key) {
+      const d = parseKey(key);
+      return `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+    }
+
+    function render() {
+      const sessions = getSessions();
+      const todayKey = dateToKey(new Date());
+      const list     = document.getElementById('activites-list');
+
+      // Same logic as the calendar: any past session that exists, completed or not
+      const past = Object.entries(sessions)
+        .filter(([key]) => key < todayKey)
+        .sort((a, b) => b[0].localeCompare(a[0]));
+
+      if (past.length === 0) {
+        list.innerHTML = '<p class="activites-empty">Aucune séance passée pour l\'instant.</p>';
+        return;
+      }
+
+      // Group by year-month
+      const groups = {};
+      past.forEach(([key, s]) => {
+        const ym = key.slice(0, 7);
+        if (!groups[ym]) groups[ym] = [];
+        groups[ym].push([key, s]);
+      });
+
+      let html = '';
+      Object.entries(groups)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .forEach(([ym, entries]) => {
+          const [y, m] = ym.split('-').map(Number);
+          html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
+          html += `<div class="profil-links activites-group">`;
+          entries.forEach(([key, s]) => {
+            const exoCount = s.exercises ? s.exercises.length : 0;
+            const setCount = s.exercises ? s.exercises.reduce((acc, e) => acc + (e.sets || []).length, 0) : 0;
+            const sub = exoCount === 0
+              ? 'Séance planifiée'
+              : `${exoCount} exercice${exoCount !== 1 ? 's' : ''} · ${setCount} série${setCount !== 1 ? 's' : ''}`;
+            const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
+            html += `
+              <div class="profil-link-row" style="cursor:pointer" onclick="window.location.href='imaz.html?view=${key}'">
+                <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
+                <div class="profil-link-info">
+                  <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
+                  <span class="profil-link-sub">${sub}</span>
+                </div>
+                <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+              </div>`;
+          });
+          html += `</div>`;
+        });
+
+      list.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    render();
+  </script>
+
+</body>
+</html>

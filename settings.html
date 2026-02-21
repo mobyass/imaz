@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réglages – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; }
+    .settings-container { padding-bottom: 40px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" id="back-btn"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Réglages</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <div class="settings-container">
+
+    <div class="settings-section">
+      <h3 class="settings-section-title">Unités</h3>
+
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-label">Unité de poids</span>
+        </div>
+        <div class="toggle-group" data-setting="weightUnit">
+          <button class="toggle-opt" data-value="kg">kg</button>
+          <button class="toggle-opt" data-value="lbs">lbs</button>
+        </div>
+      </div>
+
+      <div class="settings-row" id="row-rest-unit">
+        <div class="settings-row-info">
+          <span class="settings-label">Unité de récupération</span>
+        </div>
+        <div class="toggle-group" data-setting="restUnit">
+          <button class="toggle-opt" data-value="s">sec</button>
+          <button class="toggle-opt" data-value="min">min</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3 class="settings-section-title">Exercices</h3>
+
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-label">Vue par défaut</span>
+          <span class="settings-desc">Pour les nouveaux exercices</span>
+        </div>
+        <div class="toggle-group" data-setting="defaultView">
+          <button class="toggle-opt" data-value="uniform">Uniforme</button>
+          <button class="toggle-opt" data-value="custom">Par série</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3 class="settings-section-title">Récupération</h3>
+
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-label">Activer la récupération</span>
+          <span class="settings-desc">Temps de récup. et minuteur</span>
+        </div>
+        <label class="settings-switch">
+          <input type="checkbox" id="setting-rest-enabled">
+          <span class="settings-switch-track"></span>
+        </label>
+      </div>
+
+      <div class="settings-row" id="row-alert-level">
+        <div class="settings-row-info">
+          <span class="settings-label">Alerte de fin</span>
+          <span class="settings-desc">Son joué à la fin du minuteur</span>
+        </div>
+        <div class="toggle-group" data-setting="alertLevel">
+          <button class="toggle-opt toggle-opt-icon" data-value="vibrate" title="Vibration uniquement">
+            <i data-lucide="smartphone"></i>
+          </button>
+          <button class="toggle-opt toggle-opt-icon" data-value="normal" title="Normal">
+            <i data-lucide="volume-1"></i>
+          </button>
+          <button class="toggle-opt toggle-opt-icon" data-value="loud" title="Fort">
+            <i data-lucide="volume-2"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="settings-section" style="margin-top:8px">
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-label">Compte</span>
+          <span class="settings-desc">Se déconnecter de l'application</span>
+        </div>
+        <button class="btn-secondary" id="btn-logout" style="flex-shrink:0;font-size:13px;padding:6px 14px">
+          Déconnexion
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    checkAuth();
+    document.getElementById('back-btn').addEventListener('click', () => history.back());
+    document.getElementById('btn-logout').addEventListener('click', logout);
+    lucide.createIcons();
+  </script>
+  <script src="js/settings.js"></script>
+
+</body>
+</html>
