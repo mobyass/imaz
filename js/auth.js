@@ -114,14 +114,15 @@ async function sendInvitation({ recipientId, dateKey, exercises }) {
 }
 
 async function loadPendingInvitations() {
-  const { data: { user } } = await _supabase.auth.getUser();
-  if (!user) return [];
-  const { data } = await _supabase
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) return [];
+  const { data, error } = await _supabase
     .from('session_invitations')
     .select('*')
-    .eq('recipient_id', user.id)
+    .eq('recipient_id', session.user.id)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
+  if (error) console.error('loadPendingInvitations:', error.message);
   return data || [];
 }
 

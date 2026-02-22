@@ -163,7 +163,6 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="js/core.js"></script>
   <script>
-    checkAuth();
     lucide.createIcons();
 
     const NOTIF_KEY = 'imaz_notifications';
@@ -303,7 +302,8 @@
       markAllLocalRead();
     }
 
-    render();
+    // Attendre que la session soit établie avant de charger les invitations
+    checkAuth().then(() => render());
   </script>
 
 </body>
