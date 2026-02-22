@@ -97,6 +97,55 @@ async function syncProfileToSupabase({ name, photo, username, role } = {}) {
   await _supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
 }
 
+// ── INVITATIONS ───────────────────────────────────────────
+
+async function sendInvitation({ recipientId, dateKey, exercises }) {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return { error: 'Non connecté' };
+  const { error } = await _supabase.from('session_invitations').insert({
+    sender_id:       user.id,
+    sender_name:     localStorage.getItem('imaz_profil_name')     || '',
+    sender_username: localStorage.getItem('imaz_profil_username') || '',
+    recipient_id:    recipientId,
+    date_key:        dateKey,
+    session_data:    { exercises },
+  });
+  return { error };
+}
+
+async function loadPendingInvitations() {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await _supabase
+    .from('session_invitations')
+    .select('*')
+    .eq('recipient_id', user.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+async function acceptInvitation(invitationId, dateKey, sessionData) {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return { error: 'Non connecté' };
+  const sessionObj = { date: dateKey, exercises: sessionData.exercises || [], completed: false };
+  await _supabase.from('sessions').upsert(
+    { user_id: user.id, date_key: dateKey, data: sessionObj, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,date_key' }
+  );
+  const all = JSON.parse(localStorage.getItem('imaz_sessions') || '{}');
+  all[dateKey] = sessionObj;
+  localStorage.setItem('imaz_sessions', JSON.stringify(all));
+  const { error } = await _supabase
+    .from('session_invitations').update({ status: 'accepted' }).eq('id', invitationId);
+  return { error };
+}
+
+async function refuseInvitation(invitationId) {
+  await _supabase
+    .from('session_invitations').update({ status: 'refused' }).eq('id', invitationId);
+}
+
 // ── LOGOUT ────────────────────────────────────────────────
 async function logout() {
   await _supabase.auth.signOut();

@@ -360,39 +360,39 @@ function finishSession(dateKey) {
 }
 
 // ── MODAL EVENTS ─────────────────────────────────────────
-document.getElementById('modal-close').addEventListener('click', closeModal);
-document.getElementById('btn-cancel').addEventListener('click', closeModal);
-document.getElementById('btn-save').addEventListener('click', saveModal);
-document.getElementById('btn-add-exo').addEventListener('click', () => addExercise());
+(function() {
+  function $on(id, evt, fn) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(evt, fn);
+  }
 
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target.id === 'modal-overlay') closeModal();
-});
-
-document.getElementById('btn-delete-session').addEventListener('click', () => {
-  document.getElementById('confirm-delete-date').textContent = formatLong(modalDateKey);
-  document.getElementById('confirm-delete-overlay').classList.add('open');
-});
-
-document.getElementById('confirm-delete-cancel').addEventListener('click', () => {
-  document.getElementById('confirm-delete-overlay').classList.remove('open');
-});
-
-document.getElementById('confirm-delete-ok').addEventListener('click', () => {
-  document.getElementById('confirm-delete-overlay').classList.remove('open');
-  deleteSession(modalDateKey);
-});
-
-document.getElementById('confirm-delete-overlay').addEventListener('click', e => {
-  if (e.target.id === 'confirm-delete-overlay')
+  $on('modal-close',            'click', closeModal);
+  $on('btn-cancel',             'click', closeModal);
+  $on('btn-save',               'click', saveModal);
+  $on('btn-add-exo',            'click', () => addExercise());
+  $on('btn-delete-session',     'click', () => {
+    document.getElementById('confirm-delete-date').textContent = formatLong(modalDateKey);
+    document.getElementById('confirm-delete-overlay').classList.add('open');
+  });
+  $on('confirm-delete-cancel',  'click', () => {
     document.getElementById('confirm-delete-overlay').classList.remove('open');
-});
-
-document.getElementById('session-view-close').addEventListener('click', () => {
-  document.getElementById('session-view-overlay').classList.remove('open');
-});
-
-document.getElementById('session-view-overlay').addEventListener('click', e => {
-  if (e.target.id === 'session-view-overlay')
+  });
+  $on('confirm-delete-ok',      'click', () => {
+    document.getElementById('confirm-delete-overlay').classList.remove('open');
+    deleteSession(modalDateKey);
+  });
+  $on('confirm-delete-overlay', 'click', e => {
+    if (e.target.id === 'confirm-delete-overlay')
+      document.getElementById('confirm-delete-overlay').classList.remove('open');
+  });
+  $on('modal-overlay',          'click', e => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+  $on('session-view-close',     'click', () => {
     document.getElementById('session-view-overlay').classList.remove('open');
-});
+  });
+  $on('session-view-overlay',   'click', e => {
+    if (e.target.id === 'session-view-overlay')
+      document.getElementById('session-view-overlay').classList.remove('open');
+  });
+})();

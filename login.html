@@ -215,7 +215,7 @@
 
     // Redirect to app if already logged in
     _supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = 'imaz.html';
+      if (session) window.location.href = 'index.html';
     });
 
     let mode = 'login';
@@ -339,7 +339,7 @@
       }
 
       await loadFromSupabase();
-      window.location.href = 'imaz.html';
+      window.location.href = 'index.html';
     });
   </script>
 

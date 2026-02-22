@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recherche – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; }
+
+    .search-bar-wrap {
+      padding: 8px 16px 12px;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      transition: border-color 0.15s;
+    }
+
+    .search-bar:focus-within { border-color: var(--accent); }
+
+    .search-bar svg { color: var(--text-muted); flex-shrink: 0; }
+
+    .search-input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 15px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .search-input::placeholder { color: var(--text-muted); }
+
+    .search-clear {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      display: none;
+      line-height: 1;
+    }
+
+    .search-results {
+      padding: 0 16px 40px;
+    }
+
+    .search-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 64px 24px;
+      color: var(--text-muted);
+    }
+
+    .search-empty-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-empty-icon svg { width: 24px; height: 24px; }
+
+    .search-empty p {
+      font-size: 14px;
+      text-align: center;
+      margin: 0;
+    }
+
+    .search-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 2px 8px;
+    }
+
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .search-row:first-child { border-top: none; }
+    .search-row:hover { background: var(--surface-2); }
+
+    .search-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .search-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .search-name {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-username {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .search-spinner {
+      display: flex;
+      justify-content: center;
+      padding: 32px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Recherche</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <i data-lucide="search"></i>
+      <input class="search-input" type="text" id="search-input"
+             placeholder="Rechercher un pseudo…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="search-clear" id="search-clear"><i data-lucide="x"></i></button>
+    </div>
+  </div>
+
+  <div class="search-results" id="search-results">
+    <div class="search-empty">
+      <div class="search-empty-icon"><i data-lucide="users"></i></div>
+      <p>Tape un pseudo pour trouver des personnes.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    checkAuth();
+    lucide.createIcons();
+
+    const searchInput  = document.getElementById('search-input');
+    const searchClear  = document.getElementById('search-clear');
+    const resultsEl    = document.getElementById('search-results');
+
+    let debounceTimer = null;
+
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    }
+
+    function showEmpty(msg) {
+      resultsEl.innerHTML = `
+        <div class="search-empty">
+          <div class="search-empty-icon"><i data-lucide="users"></i></div>
+          <p>${msg}</p>
+        </div>`;
+      lucide.createIcons();
+    }
+
+    function showSpinner() {
+      resultsEl.innerHTML = `<div class="search-spinner">Recherche…</div>`;
+    }
+
+    async function doSearch(query) {
+      if (!query) {
+        showEmpty('Tape un pseudo pour trouver des personnes.');
+        return;
+      }
+
+      showSpinner();
+
+      const { data: { user } } = await _supabase.auth.getUser();
+      const { data, error } = await _supabase
+        .from('profiles')
+        .select('user_id, name, username, photo')
+        .ilike('username', `%${query}%`)
+        .neq('user_id', user?.id ?? '')
+        .limit(30);
+
+      if (error || !data) {
+        showEmpty('Une erreur est survenue.');
+        return;
+      }
+
+      if (data.length === 0) {
+        showEmpty(`Aucun résultat pour « ${query} ».`);
+        return;
+      }
+
+      let html = `<div class="search-section-label">${data.length} résultat${data.length > 1 ? 's' : ''}</div>`;
+      html += `<div class="search-card">`;
+      data.forEach(p => {
+        const initials = getInitials(p.name || p.username);
+        const avatarStyle = p.photo
+          ? `background-image:url(${p.photo});background-size:cover;background-position:center;`
+          : '';
+        const avatarContent = p.photo ? '' : initials;
+        html += `
+          <div class="search-row">
+            <div class="search-avatar" style="${avatarStyle}">${avatarContent}</div>
+            <div class="search-info">
+              <span class="search-name">${p.name || p.username || '—'}</span>
+              <span class="search-username">@${p.username || ''}</span>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+
+      resultsEl.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    searchInput.addEventListener('input', () => {
+      const val = searchInput.value.trim().toLowerCase();
+      searchClear.style.display = val ? '' : 'none';
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => doSearch(val), 350);
+    });
+
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      searchClear.style.display = 'none';
+      searchInput.focus();
+      showEmpty('Tape un pseudo pour trouver des personnes.');
+    });
+
+    searchInput.focus();
+  </script>
+
+</body>
+</html>

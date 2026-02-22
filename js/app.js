@@ -233,7 +233,8 @@ function refreshHome() {
 const navBtns = document.querySelectorAll('.nav-btn');
 navBtns.forEach((btn, i) => {
   btn.addEventListener('click', () => {
-    if (i === 1) { window.location.href = 'reglages.html'; return; }
+    if (i === 2) { window.location.href = 'reglages.html'; return; }
+    if (i === 1) return; // share button handled by onclick
     navBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   });

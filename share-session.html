@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partager une séance – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/form.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 100px; }
+
+    /* ── Date selector ── */
+    .share-date-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 4px 16px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .share-date-row:hover { background: var(--surface-2); }
+    .share-date-row svg { color: var(--accent); flex-shrink: 0; }
+
+    .share-date-text {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .share-date-row .arrow-icon { color: var(--text-muted); }
+
+    /* ── Exercises container ── */
+    .share-exercises-wrap {
+      padding: 0 16px;
+    }
+
+    /* ── Add exercise button ── */
+    .btn-add-exo-wrap {
+      padding: 0 16px;
+      margin-top: 8px;
+    }
+
+    .share-error {
+      margin: 8px 16px 0;
+      font-size: 13px;
+      color: #e53e3e;
+    }
+
+    /* ── Footer ── */
+    .share-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 16px 28px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+
+    .share-footer .btn-primary {
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+    }
+
+    /* ── Date picker overlay ── */
+    .dp-modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px;
+      width: calc(100% - 32px);
+      max-width: 340px;
+    }
+
+    .dp-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .dp-nav-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .dp-month-label {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .dp-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .dp-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    .dp-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 13px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--text);
+      transition: background 0.12s;
+    }
+
+    .dp-day:hover:not(:disabled) { background: var(--surface-2); }
+    .dp-day:disabled { color: var(--text-muted); opacity: 0.4; cursor: default; }
+    .dp-day.today { color: var(--accent); font-weight: 700; }
+    .dp-day.selected { background: var(--accent); color: white; font-weight: 700; }
+
+    /* ── Search overlay ── */
+    .search-ol-modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      width: calc(100% - 32px);
+      max-width: 380px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .search-ol-header {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-ol-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 12px;
+    }
+
+    .search-ol-bar:focus-within { border-color: var(--accent); }
+    .search-ol-bar svg { color: var(--text-muted); flex-shrink: 0; }
+
+    .search-ol-input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .search-ol-input::placeholder { color: var(--text-muted); }
+
+    .search-ol-results {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .search-ol-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .search-ol-row:hover { background: var(--surface-2); }
+
+    .search-ol-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .search-ol-info { flex: 1; min-width: 0; }
+
+    .search-ol-name {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-ol-username { font-size: 12px; color: var(--text-muted); }
+
+    .search-ol-empty {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .search-ol-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Confirm overlay ── */
+    .confirm-ol-modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      width: calc(100% - 32px);
+      max-width: 340px;
+      padding: 20px 16px 16px;
+    }
+
+    .confirm-ol-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .confirm-ol-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .confirm-ol-desc strong { color: var(--text); }
+
+    .confirm-ol-footer {
+      display: flex;
+      gap: 8px;
+    }
+
+    .confirm-ol-footer .btn-secondary,
+    .confirm-ol-footer .btn-primary { flex: 1; }
+
+    /* ── Success state ── */
+    .share-success {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 60px 24px;
+      text-align: center;
+    }
+
+    .share-success-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(72, 199, 142, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .share-success-icon svg { width: 32px; height: 32px; color: #48c78e; }
+
+    .share-success h3 { font-size: 18px; font-weight: 700; }
+
+    .share-success p { font-size: 14px; color: var(--text-muted); margin: 0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" id="back-btn"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Partager une séance</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <!-- Date selector -->
+  <div class="share-date-row" id="share-date-btn">
+    <i data-lucide="calendar"></i>
+    <span class="share-date-text" id="share-date-display">Chargement…</span>
+    <i data-lucide="chevron-right" class="arrow-icon"></i>
+  </div>
+
+  <!-- Exercises (reuses modal.js / form.css IDs) -->
+  <div class="share-exercises-wrap">
+    <div id="modal-exercises"></div>
+  </div>
+
+  <div class="btn-add-exo-wrap">
+    <button class="btn-add-exo" id="btn-add-exo">
+      <i data-lucide="plus"></i> Ajouter un exercice
+    </button>
+  </div>
+
+  <p class="modal-error share-error" id="modal-save-error" hidden></p>
+
+  <div class="share-footer">
+    <button class="btn-primary" id="btn-share">
+      <i data-lucide="send"></i> Partager
+    </button>
+  </div>
+
+  <!-- ── DATE PICKER OVERLAY ── -->
+  <div class="modal-overlay" id="dp-overlay">
+    <div class="dp-modal">
+      <div class="dp-nav">
+        <button class="dp-nav-btn" id="dp-prev"><i data-lucide="chevron-left"></i></button>
+        <span class="dp-month-label" id="dp-month-label"></span>
+        <button class="dp-nav-btn" id="dp-next"><i data-lucide="chevron-right"></i></button>
+      </div>
+      <div class="dp-weekdays">
+        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div class="dp-grid" id="dp-grid"></div>
+      <div class="modal-footer" style="margin-top:14px">
+        <button class="btn-secondary" id="dp-cancel">Annuler</button>
+        <button class="btn-primary"   id="dp-confirm">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── USER SEARCH OVERLAY ── -->
+  <div class="modal-overlay" id="search-ol-overlay">
+    <div class="search-ol-modal">
+      <div class="search-ol-header">
+        <div class="search-ol-bar">
+          <i data-lucide="search"></i>
+          <input class="search-ol-input" id="search-ol-input"
+                 type="text" placeholder="Rechercher un pseudo…"
+                 autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="search-ol-results" id="search-ol-results">
+        <p class="search-ol-empty">Tape un pseudo pour chercher.</p>
+      </div>
+      <div class="search-ol-footer">
+        <button class="btn-secondary" id="search-ol-cancel" style="width:100%">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONFIRM SEND OVERLAY ── -->
+  <div class="modal-overlay" id="confirm-ol-overlay">
+    <div class="confirm-ol-modal">
+      <div class="confirm-ol-title">Envoyer la séance ?</div>
+      <p class="confirm-ol-desc" id="confirm-ol-desc"></p>
+      <div class="confirm-ol-footer">
+        <button class="btn-secondary" id="confirm-ol-cancel">Annuler</button>
+        <button class="btn-primary"   id="confirm-ol-ok">
+          <i data-lucide="send"></i> Envoyer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script src="js/modal.js"></script>
+  <script>
+    checkAuth();
+    document.getElementById('back-btn').addEventListener('click', () => history.back());
+
+    // ── SELECTED DATE ──────────────────────────────────────
+    let selectedDateKey = dateToKey(new Date());
+
+    function updateDateDisplay() {
+      document.getElementById('share-date-display').textContent = formatLong(selectedDateKey);
+    }
+    updateDateDisplay();
+
+    // ── INIT EXERCISE ──────────────────────────────────────
+    addExercise();
+    lucide.createIcons();
+
+    // ── DATE PICKER ────────────────────────────────────────
+    const dpOverlay   = document.getElementById('dp-overlay');
+    const dpGrid      = document.getElementById('dp-grid');
+    const dpMonthLbl  = document.getElementById('dp-month-label');
+    const today       = new Date();
+    const todayKey    = dateToKey(today);
+    let dpViewMonth   = { year: today.getFullYear(), month: today.getMonth() };
+    let dpSelected    = selectedDateKey;
+
+    function renderDp() {
+      const { year, month } = dpViewMonth;
+      dpMonthLbl.textContent = `${MONTHS[month]} ${year}`;
+      dpGrid.innerHTML = '';
+
+      const firstDay = new Date(year, month, 1);
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      let offset = firstDay.getDay() - 1;
+      if (offset < 0) offset = 6;
+      for (let i = 0; i < offset; i++) dpGrid.appendChild(document.createElement('div'));
+
+      const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      for (let d = 1; d <= lastDate; d++) {
+        const date = new Date(year, month, d);
+        const key  = dateToKey(date);
+        const btn  = document.createElement('button');
+        btn.textContent = d;
+        btn.className   = 'dp-day' +
+          (key === todayKey  ? ' today'    : '') +
+          (key === dpSelected ? ' selected' : '');
+        if (date < todayMid) btn.disabled = true;
+        else btn.addEventListener('click', () => {
+          dpSelected = key;
+          renderDp();
+        });
+        dpGrid.appendChild(btn);
+      }
+      lucide.createIcons();
+    }
+
+    document.getElementById('share-date-btn').addEventListener('click', () => {
+      dpSelected  = selectedDateKey;
+      dpViewMonth = { year: today.getFullYear(), month: today.getMonth() };
+      renderDp();
+      dpOverlay.classList.add('open');
+    });
+
+    document.getElementById('dp-prev').addEventListener('click', () => {
+      let { year, month } = dpViewMonth;
+      if (--month < 0) { month = 11; year--; }
+      dpViewMonth = { year, month };
+      renderDp();
+    });
+
+    document.getElementById('dp-next').addEventListener('click', () => {
+      let { year, month } = dpViewMonth;
+      if (++month > 11) { month = 0; year++; }
+      dpViewMonth = { year, month };
+      renderDp();
+    });
+
+    document.getElementById('dp-cancel').addEventListener('click', () => {
+      dpOverlay.classList.remove('open');
+    });
+
+    document.getElementById('dp-confirm').addEventListener('click', () => {
+      selectedDateKey = dpSelected;
+      updateDateDisplay();
+      dpOverlay.classList.remove('open');
+    });
+
+    // ── COLLECT EXERCISES (same logic as saveModal) ────────
+    function collectExercises() {
+      const settings  = getSettings();
+      const exercises = [];
+      let   hasError  = false;
+
+      document.querySelectorAll('.exo-item').forEach(item => {
+        const nameInput = item.querySelector('.exo-name-input');
+        if (!nameInput.value.trim()) {
+          nameInput.classList.add('input-error');
+          hasError = true;
+        } else {
+          nameInput.classList.remove('input-error');
+        }
+      });
+
+      if (hasError) {
+        const err = document.getElementById('modal-save-error');
+        err.textContent = 'Certains exercices n\'ont pas de nom.';
+        err.hidden = false;
+        return null;
+      }
+
+      document.querySelectorAll('.exo-item').forEach(item => {
+        const name     = item.querySelector('.exo-name-input').value.trim();
+        const isCustom = !item.querySelector('.exo-sets-custom').hidden;
+        let   sets     = [];
+
+        if (isCustom) {
+          item.querySelectorAll('.set-row').forEach(row => {
+            const restEl  = row.querySelector('.set-rest');
+            const restSec = settings.restEnabled
+              ? displayToSec(restEl?.value, settings)
+              : (parseInt(restEl?.value) || 0);
+            sets.push({
+              reps:   parseInt(row.querySelector('.set-reps').value)    || 0,
+              rest:   restSec,
+              weight: parseFloat(row.querySelector('.set-weight').value) || null,
+            });
+          });
+        } else {
+          const count  = parseInt(item.querySelector('.exo-series').value) || 0;
+          const reps   = parseInt(item.querySelector('.exo-reps').value)   || 0;
+          const restEl = item.querySelector('.exo-rest');
+          const rest   = restEl ? displayToSec(restEl.value, settings) : 0;
+          const weight = parseFloat(item.querySelector('.exo-weight').value) || null;
+          for (let i = 0; i < count; i++) sets.push({ reps, rest, weight });
+        }
+
+        if (name && sets.length > 0) exercises.push({ name, bodyweight: false, sets });
+      });
+
+      return exercises;
+    }
+
+    // ── SEARCH OVERLAY ────────────────────────────────────
+    const searchOlOverlay = document.getElementById('search-ol-overlay');
+    const searchOlInput   = document.getElementById('search-ol-input');
+    const searchOlResults = document.getElementById('search-ol-results');
+    let   pendingExercises = null;
+    let   selectedUser    = null;
+    let   searchTimer     = null;
+
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    }
+
+    async function searchUsers(query) {
+      if (!query) {
+        searchOlResults.innerHTML = '<p class="search-ol-empty">Tape un pseudo pour chercher.</p>';
+        return;
+      }
+      searchOlResults.innerHTML = '<p class="search-ol-empty">Recherche…</p>';
+      const { data: { user } } = await _supabase.auth.getUser();
+      const { data } = await _supabase
+        .from('profiles')
+        .select('user_id, name, username, photo')
+        .ilike('username', `%${query}%`)
+        .neq('user_id', user?.id ?? '')
+        .limit(20);
+
+      if (!data || data.length === 0) {
+        searchOlResults.innerHTML = `<p class="search-ol-empty">Aucun résultat pour « ${query} ».</p>`;
+        return;
+      }
+
+      searchOlResults.innerHTML = data.map(p => {
+        const initials     = getInitials(p.name || p.username);
+        const avatarStyle  = p.photo
+          ? `style="background-image:url(${p.photo});background-size:cover;background-position:center;"`
+          : '';
+        const avatarContent = p.photo ? '' : initials;
+        return `
+          <div class="search-ol-row" data-uid="${p.user_id}" data-name="${p.name || p.username}" data-username="${p.username}">
+            <div class="search-ol-avatar" ${avatarStyle}>${avatarContent}</div>
+            <div class="search-ol-info">
+              <div class="search-ol-name">${p.name || p.username}</div>
+              <div class="search-ol-username">@${p.username}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      searchOlResults.querySelectorAll('.search-ol-row').forEach(row => {
+        row.addEventListener('click', () => {
+          selectedUser = {
+            id:       row.dataset.uid,
+            name:     row.dataset.name,
+            username: row.dataset.username,
+          };
+          searchOlOverlay.classList.remove('open');
+          openConfirmOverlay();
+        });
+      });
+    }
+
+    searchOlInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => searchUsers(searchOlInput.value.trim().toLowerCase()), 350);
+    });
+
+    document.getElementById('search-ol-cancel').addEventListener('click', () => {
+      searchOlOverlay.classList.remove('open');
+    });
+
+    // ── CONFIRM OVERLAY ────────────────────────────────────
+    const confirmOlOverlay = document.getElementById('confirm-ol-overlay');
+
+    function openConfirmOverlay() {
+      const dateStr = formatLong(selectedDateKey);
+      const name    = selectedUser.name || `@${selectedUser.username}`;
+      document.getElementById('confirm-ol-desc').innerHTML =
+        `Envoyer la séance du <strong>${dateStr}</strong> à <strong>${name}</strong> (@${selectedUser.username}) ?`;
+      confirmOlOverlay.classList.add('open');
+      lucide.createIcons();
+    }
+
+    document.getElementById('confirm-ol-cancel').addEventListener('click', () => {
+      confirmOlOverlay.classList.remove('open');
+      searchOlOverlay.classList.add('open');
+    });
+
+    document.getElementById('confirm-ol-ok').addEventListener('click', async () => {
+      document.getElementById('confirm-ol-ok').disabled = true;
+      document.getElementById('confirm-ol-ok').textContent = '…';
+
+      const { error } = await sendInvitation({
+        recipientId: selectedUser.id,
+        dateKey:     selectedDateKey,
+        exercises:   pendingExercises,
+      });
+
+      confirmOlOverlay.classList.remove('open');
+
+      if (error) {
+        const errEl = document.getElementById('modal-save-error');
+        errEl.textContent = 'Erreur lors de l\'envoi. Réessaie.';
+        errEl.hidden = false;
+        document.getElementById('confirm-ol-ok').disabled = false;
+        document.getElementById('confirm-ol-ok').innerHTML = '<i data-lucide="send"></i> Envoyer';
+        lucide.createIcons();
+        return;
+      }
+
+      showSuccess();
+    });
+
+    // ── SHARE BUTTON ───────────────────────────────────────
+    document.getElementById('btn-share').addEventListener('click', () => {
+      const exercises = collectExercises();
+      if (!exercises) return;
+
+      pendingExercises = exercises;
+      searchOlInput.value = '';
+      searchOlResults.innerHTML = '<p class="search-ol-empty">Tape un pseudo pour chercher.</p>';
+      searchOlOverlay.classList.add('open');
+      setTimeout(() => searchOlInput.focus(), 150);
+    });
+
+    // ── SUCCESS STATE ──────────────────────────────────────
+    function showSuccess() {
+      document.body.innerHTML = `
+        <header>
+          <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+          <div class="header-title">Partager une séance</div>
+          <div style="width:38px"></div>
+        </header>
+        <div class="share-success">
+          <div class="share-success-icon"><i data-lucide="check-circle"></i></div>
+          <h3>Séance envoyée !</h3>
+          <p>
+            <strong>${selectedUser.name || '@' + selectedUser.username}</strong> a reçu
+            la séance du ${formatLong(selectedDateKey)}.
+          </p>
+          <button class="btn-primary" onclick="history.back()" style="margin-top:8px">
+            Retour à l'accueil
+          </button>
+        </div>`;
+      lucide.createIcons();
+    }
+  </script>
+
+</body>
+</html>

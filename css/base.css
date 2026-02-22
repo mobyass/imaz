@@ -95,6 +95,25 @@ header {
   color: var(--text);
 }
 
+.notif-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  background: #e53e3e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
 /* ── BUTTONS (shared) ── */
 .btn-primary {
   background: var(--accent);
@@ -165,3 +184,19 @@ header {
 }
 
 .nav-btn.active { color: var(--accent); }
+
+.nav-btn-plus {
+  background: var(--accent);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  color: white;
+  margin-top: -10px;
+  border: 3px solid var(--bg);
+  box-shadow: 0 4px 14px rgba(79, 142, 247, 0.45);
+  flex-shrink: 0;
+}
+
+.nav-btn-plus svg { width: 22px; height: 22px; }
+.nav-btn-plus span { display: none; }
