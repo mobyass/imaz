@@ -355,12 +355,12 @@
         <div class="search-ol-bar">
           <i data-lucide="search"></i>
           <input class="search-ol-input" id="search-ol-input"
-                 type="text" placeholder="Rechercher un pseudo…"
+                 type="text" placeholder="Filtrer…"
                  autocomplete="off" autocorrect="off" spellcheck="false">
         </div>
       </div>
       <div class="search-ol-results" id="search-ol-results">
-        <p class="search-ol-empty">Tape un pseudo pour chercher.</p>
+        <p class="search-ol-empty">Chargement…</p>
       </div>
       <div class="search-ol-footer">
         <button class="btn-secondary" id="search-ol-cancel" style="width:100%">Annuler</button>
@@ -535,64 +535,81 @@
     const searchOlResults = document.getElementById('search-ol-results');
     let   pendingExercises = null;
     let   selectedUser    = null;
-    let   searchTimer     = null;
+    let   pratiquantsCache = null;
 
     function getInitials(name) {
       if (!name) return '?';
       return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
     }
 
-    async function searchUsers(query) {
-      if (!query) {
-        searchOlResults.innerHTML = '<p class="search-ol-empty">Tape un pseudo pour chercher.</p>';
-        return;
-      }
-      searchOlResults.innerHTML = '<p class="search-ol-empty">Recherche…</p>';
-      const { data: { user } } = await _supabase.auth.getUser();
-      const { data } = await _supabase
+    async function loadPratiquants() {
+      if (pratiquantsCache) return pratiquantsCache;
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (!session) return [];
+      const { data: accepted } = await _supabase
+        .from('coaching_requests')
+        .select('recipient_id')
+        .eq('sender_id', session.user.id)
+        .eq('status', 'accepted');
+      if (!accepted || accepted.length === 0) { pratiquantsCache = []; return []; }
+      const ids = accepted.map(r => r.recipient_id);
+      const { data: profiles } = await _supabase
         .from('profiles')
         .select('user_id, name, username, photo')
-        .ilike('username', `%${query}%`)
-        .neq('user_id', user?.id ?? '')
-        .limit(20);
+        .in('user_id', ids);
+      pratiquantsCache = profiles || [];
+      return pratiquantsCache;
+    }
 
-      if (!data || data.length === 0) {
-        searchOlResults.innerHTML = `<p class="search-ol-empty">Aucun résultat pour « ${query} ».</p>`;
+    function renderPratiquantsList(list, filter) {
+      const filtered = filter
+        ? list.filter(p =>
+            (p.username || '').toLowerCase().includes(filter) ||
+            (p.name     || '').toLowerCase().includes(filter))
+        : list;
+
+      if (filtered.length === 0) {
+        searchOlResults.innerHTML = filter
+          ? `<p class="search-ol-empty">Aucun résultat pour « ${filter} ».</p>`
+          : `<p class="search-ol-empty">Tu n'as pas encore de pratiquants.<br>Va dans <strong>Recherche</strong> pour en ajouter.</p>`;
         return;
       }
 
-      searchOlResults.innerHTML = data.map(p => {
-        const initials     = getInitials(p.name || p.username);
-        const avatarStyle  = p.photo
-          ? `style="background-image:url(${p.photo});background-size:cover;background-position:center;"`
-          : '';
-        const avatarContent = p.photo ? '' : initials;
-        return `
-          <div class="search-ol-row" data-uid="${p.user_id}" data-name="${p.name || p.username}" data-username="${p.username}">
-            <div class="search-ol-avatar" ${avatarStyle}>${avatarContent}</div>
-            <div class="search-ol-info">
-              <div class="search-ol-name">${p.name || p.username}</div>
-              <div class="search-ol-username">@${p.username}</div>
-            </div>
-          </div>`;
-      }).join('');
+      searchOlResults.innerHTML = '';
+      filtered.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'search-ol-row';
 
-      searchOlResults.querySelectorAll('.search-ol-row').forEach(row => {
+        const avatar = document.createElement('div');
+        avatar.className = 'search-ol-avatar';
+        if (p.photo) {
+          avatar.style.backgroundImage    = `url(${p.photo})`;
+          avatar.style.backgroundSize     = 'cover';
+          avatar.style.backgroundPosition = 'center';
+        } else {
+          avatar.textContent = getInitials(p.name || p.username);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'search-ol-info';
+        info.innerHTML = `
+          <div class="search-ol-name">${p.name || p.username}</div>
+          <div class="search-ol-username">@${p.username}</div>`;
+
+        row.appendChild(avatar);
+        row.appendChild(info);
         row.addEventListener('click', () => {
-          selectedUser = {
-            id:       row.dataset.uid,
-            name:     row.dataset.name,
-            username: row.dataset.username,
-          };
+          selectedUser = { id: p.user_id, name: p.name || p.username, username: p.username };
           searchOlOverlay.classList.remove('open');
           openConfirmOverlay();
         });
+        searchOlResults.appendChild(row);
       });
     }
 
-    searchOlInput.addEventListener('input', () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => searchUsers(searchOlInput.value.trim().toLowerCase()), 350);
+    searchOlInput.addEventListener('input', async () => {
+      const list = await loadPratiquants();
+      renderPratiquantsList(list, searchOlInput.value.trim().toLowerCase());
     });
 
     document.getElementById('search-ol-cancel').addEventListener('click', () => {
@@ -642,14 +659,16 @@
     });
 
     // ── SHARE BUTTON ───────────────────────────────────────
-    document.getElementById('btn-share').addEventListener('click', () => {
+    document.getElementById('btn-share').addEventListener('click', async () => {
       const exercises = collectExercises();
       if (!exercises) return;
 
       pendingExercises = exercises;
       searchOlInput.value = '';
-      searchOlResults.innerHTML = '<p class="search-ol-empty">Tape un pseudo pour chercher.</p>';
+      searchOlResults.innerHTML = '<p class="search-ol-empty">Chargement…</p>';
       searchOlOverlay.classList.add('open');
+      const list = await loadPratiquants();
+      renderPratiquantsList(list, '');
       setTimeout(() => searchOlInput.focus(), 150);
     });
 

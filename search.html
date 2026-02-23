@@ -312,8 +312,11 @@
             btn.disabled = true;
             btn.innerHTML = '…';
             const { error: err } = await sendCoachingRequest(p.user_id);
+            if (err) console.error('sendCoachingRequest error:', err);
+            // 23505 = duplicate key (demande déjà envoyée) → traiter comme succès
             if (err && err.code !== '23505') {
-              btn.innerHTML = '!';
+              btn.textContent = '!';
+              btn.title = err.message || 'Erreur';
               btn.disabled  = false;
             } else {
               btn.textContent = '…';
