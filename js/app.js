@@ -2,7 +2,7 @@ const today    = new Date();
 const todayKey = dateToKey(today);
 let   weekStart = getMonday(new Date());
 
-// ── CALENDAR ─────────────────────────────────────────────
+// ── WEEK STRIP ────────────────────────────────────────────
 function renderWeek() {
   const strip    = document.getElementById('week-strip');
   const sessions = getSessions();
@@ -53,6 +53,84 @@ document.getElementById('prev-week').addEventListener('click', () => {
 document.getElementById('next-week').addEventListener('click', () => {
   weekStart.setDate(weekStart.getDate() + 7);
   renderWeek();
+});
+
+// ── CALENDRIER POPUP ──────────────────────────────────────
+let calPopupMonth = { year: today.getFullYear(), month: today.getMonth() };
+
+function renderCalPopup() {
+  const { year, month } = calPopupMonth;
+  const sessions        = getSessions();
+  const todayMidnight  = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  document.getElementById('cal-popup-label').textContent = `${MONTHS[month]} ${year}`;
+
+  const grid = document.getElementById('cal-popup-grid');
+  grid.innerHTML = '';
+
+  const firstDay = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0).getDate();
+
+  let offset = firstDay.getDay() - 1;
+  if (offset < 0) offset = 6;
+  for (let i = 0; i < offset; i++) grid.appendChild(document.createElement('div'));
+
+  for (let d = 1; d <= lastDate; d++) {
+    const date   = new Date(year, month, d);
+    const key    = dateToKey(date);
+    const isPast = date < todayMidnight;
+
+    const btn = document.createElement('button');
+    btn.textContent = d;
+    btn.className   = 'sched-day' +
+      (key === todayKey ? ' sched-day-today'       : '') +
+      (sessions[key]    ? ' sched-day-has-session' : '');
+
+    if (isPast && !sessions[key]) {
+      btn.disabled = true;
+    } else {
+      btn.addEventListener('click', () => {
+        document.getElementById('cal-popup-overlay').classList.remove('open');
+        if (isPast && sessions[key]) openSessionViewModal(key);
+        else openModal(key);
+      });
+    }
+    grid.appendChild(btn);
+  }
+}
+
+document.getElementById('month-year').addEventListener('click', () => {
+  openCalPopup(weekStart.getFullYear(), weekStart.getMonth());
+});
+
+function openCalPopup(year, month) {
+  calPopupMonth = { year, month };
+  renderCalPopup();
+  document.getElementById('cal-popup-overlay').classList.add('open');
+  lucide.createIcons();
+}
+
+document.getElementById('cal-popup-close').addEventListener('click', () => {
+  document.getElementById('cal-popup-overlay').classList.remove('open');
+});
+
+document.getElementById('cal-popup-prev').addEventListener('click', () => {
+  let { year, month } = calPopupMonth;
+  if (--month < 0) { month = 11; year--; }
+  calPopupMonth = { year, month };
+  renderCalPopup();
+});
+
+document.getElementById('cal-popup-next').addEventListener('click', () => {
+  let { year, month } = calPopupMonth;
+  if (++month > 11) { month = 0; year++; }
+  calPopupMonth = { year, month };
+  renderCalPopup();
+});
+
+document.getElementById('cal-popup-overlay').addEventListener('click', e => {
+  if (e.target.id === 'cal-popup-overlay')
+    document.getElementById('cal-popup-overlay').classList.remove('open');
 });
 
 // ── HOME PAGE ─────────────────────────────────────────────

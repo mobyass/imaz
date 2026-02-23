@@ -273,13 +273,59 @@
       });
     }
 
+    // ── COACHING REQUEST CARD ───────────────────────────────
+    function renderCoachingCard(req) {
+      const senderName = req.sender_name || req.sender_username || 'Quelqu\'un';
+      const pseudo     = req.sender_username ? `@${req.sender_username}` : '';
+
+      const card = document.createElement('div');
+      card.className = 'invite-card';
+      card.innerHTML = `
+        <div class="invite-header">
+          <div class="invite-icon"><i data-lucide="user-plus"></i></div>
+          <div class="invite-body">
+            <div class="invite-title"><strong>${senderName}</strong> veut vous coacher</div>
+            <div class="invite-sub">${pseudo}</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">
+          Acceptez-vous de recevoir des séances de <strong>${senderName}</strong> ?
+        </p>
+        <div class="invite-actions" id="coach-act-${req.id}">
+          <button class="btn-secondary btn-refuse">Refuser</button>
+          <button class="btn-primary btn-accept">
+            <i data-lucide="check"></i> Accepter
+          </button>
+        </div>`;
+
+      card.querySelector('.btn-refuse').addEventListener('click', async () => {
+        card.querySelector(`#coach-act-${req.id}`).innerHTML =
+          '<p class="invite-done">Demande refusée</p>';
+        await refuseCoachingRequest(req.id);
+      });
+
+      card.querySelector('.btn-accept').addEventListener('click', async () => {
+        const actEl = card.querySelector(`#coach-act-${req.id}`);
+        actEl.innerHTML = '<p class="invite-done">…</p>';
+        const { error } = await acceptCoachingRequest(req.id);
+        actEl.innerHTML = error
+          ? '<p class="invite-done" style="color:#e53e3e">Erreur. Réessaie.</p>'
+          : '<p class="invite-done" style="color:#48c78e">✓ Demande acceptée</p>';
+      });
+
+      return card;
+    }
+
     // ── MAIN RENDER ────────────────────────────────────────
     async function render() {
       listEl.innerHTML = '';
-      const invitations = await loadPendingInvitations();
-      const localNotifs = getLocalNotifs();
+      const [invitations, coachReqs, localNotifs] = await Promise.all([
+        loadPendingInvitations(),
+        loadPendingCoachingRequests(),
+        Promise.resolve(getLocalNotifs()),
+      ]);
 
-      if (invitations.length === 0 && localNotifs.length === 0) {
+      if (invitations.length === 0 && coachReqs.length === 0 && localNotifs.length === 0) {
         listEl.innerHTML = `
           <div class="notif-empty">
             <div class="notif-empty-icon"><i data-lucide="bell-off"></i></div>
@@ -289,10 +335,18 @@
         return;
       }
 
+      if (coachReqs.length > 0) {
+        const label = document.createElement('div');
+        label.className = 'notif-group-label';
+        label.textContent = 'Demandes de coaching';
+        listEl.appendChild(label);
+        coachReqs.forEach(req => listEl.appendChild(renderCoachingCard(req)));
+      }
+
       if (invitations.length > 0) {
         const label = document.createElement('div');
         label.className = 'notif-group-label';
-        label.textContent = 'Invitations';
+        label.textContent = 'Invitations de séance';
         listEl.appendChild(label);
         invitations.forEach(inv => listEl.appendChild(renderInviteCard(inv)));
       }

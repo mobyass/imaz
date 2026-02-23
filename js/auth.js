@@ -147,6 +147,44 @@ async function refuseInvitation(invitationId) {
     .from('session_invitations').update({ status: 'refused' }).eq('id', invitationId);
 }
 
+// ── COACHING REQUESTS ─────────────────────────────────────
+
+async function sendCoachingRequest(recipientId) {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return { error: 'Non connecté' };
+  const { error } = await _supabase.from('coaching_requests').insert({
+    sender_id:       user.id,
+    sender_name:     localStorage.getItem('imaz_profil_name')     || '',
+    sender_username: localStorage.getItem('imaz_profil_username') || '',
+    recipient_id:    recipientId,
+  });
+  return { error };
+}
+
+async function loadPendingCoachingRequests() {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) return [];
+  const { data, error } = await _supabase
+    .from('coaching_requests')
+    .select('*')
+    .eq('recipient_id', session.user.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) console.error('loadPendingCoachingRequests:', error.message);
+  return data || [];
+}
+
+async function acceptCoachingRequest(requestId) {
+  const { error } = await _supabase
+    .from('coaching_requests').update({ status: 'accepted' }).eq('id', requestId);
+  return { error };
+}
+
+async function refuseCoachingRequest(requestId) {
+  await _supabase
+    .from('coaching_requests').update({ status: 'refused' }).eq('id', requestId);
+}
+
 // ── LOGOUT ────────────────────────────────────────────────
 async function logout() {
   await _supabase.auth.signOut();

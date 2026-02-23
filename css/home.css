@@ -19,7 +19,13 @@
   font-size: 13px;
   font-weight: 600;
   text-transform: capitalize;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
 }
+
+.calendar-nav span:hover { background: var(--surface-2); }
 
 .cal-arrow {
   background: none;

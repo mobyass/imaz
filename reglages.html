@@ -63,11 +63,11 @@
       </div>
       <i data-lucide="chevron-right" class="profil-link-arrow"></i>
     </div>
-    <div class="profil-link-row">
-      <div class="profil-link-icon"><i data-lucide="bar-chart-2"></i></div>
+    <div class="profil-link-row" onclick="window.location.href='pratiquants.html'">
+      <div class="profil-link-icon"><i data-lucide="users"></i></div>
       <div class="profil-link-info">
-        <span class="profil-link-title">Statistiques</span>
-        <span class="profil-link-sub" id="profil-total-label">—</span>
+        <span class="profil-link-title">Pratiquants</span>
+        <span class="profil-link-sub">Personnes que tu suis</span>
       </div>
       <i data-lucide="chevron-right" class="profil-link-arrow"></i>
     </div>
@@ -148,8 +148,6 @@
 
       document.getElementById('profil-last-label').textContent =
         totalPast > 0 ? `${totalPast} séance${totalPast !== 1 ? 's' : ''}` : 'Aucune activité';
-      document.getElementById('profil-total-label').textContent =
-        `${totalCompleted} terminée${totalCompleted !== 1 ? 's' : ''}`;
     }
     computeStats();
 

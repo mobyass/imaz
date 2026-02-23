@@ -154,6 +154,28 @@
       color: var(--text-muted);
       font-size: 13px;
     }
+
+    .search-coach-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(79, 142, 247, 0.35);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background 0.15s;
+    }
+    .search-coach-btn svg { width: 15px; height: 15px; }
+    .search-coach-btn:hover:not(:disabled) { background: rgba(79, 142, 247, 0.3); }
+    .search-coach-btn:disabled { cursor: default; }
+    .search-coach-btn.sent  { background: rgba(72,199,142,0.15); border-color: rgba(72,199,142,0.4); color: #48c78e; }
+    .search-coach-btn.pend  { opacity: 0.55; }
   </style>
 </head>
 <body>
@@ -229,36 +251,84 @@
         .neq('user_id', user?.id ?? '')
         .limit(30);
 
-      if (error || !data) {
-        showEmpty('Une erreur est survenue.');
-        return;
-      }
+      if (error || !data) { showEmpty('Une erreur est survenue.'); return; }
+      if (data.length === 0) { showEmpty(`Aucun résultat pour « ${query} ».`); return; }
 
-      if (data.length === 0) {
-        showEmpty(`Aucun résultat pour « ${query} ».`);
-        return;
-      }
+      // Fetch existing coaching requests to know current status
+      const ids = data.map(p => p.user_id);
+      const { data: existing } = await _supabase
+        .from('coaching_requests')
+        .select('recipient_id, status')
+        .eq('sender_id', user.id)
+        .in('recipient_id', ids);
+      const reqMap = {};
+      (existing || []).forEach(r => { reqMap[r.recipient_id] = r.status; });
 
-      let html = `<div class="search-section-label">${data.length} résultat${data.length > 1 ? 's' : ''}</div>`;
-      html += `<div class="search-card">`;
+      resultsEl.innerHTML = '';
+
+      const label = document.createElement('div');
+      label.className = 'search-section-label';
+      label.textContent = `${data.length} résultat${data.length > 1 ? 's' : ''}`;
+      resultsEl.appendChild(label);
+
+      const card = document.createElement('div');
+      card.className = 'search-card';
+
       data.forEach(p => {
-        const initials = getInitials(p.name || p.username);
-        const avatarStyle = p.photo
-          ? `background-image:url(${p.photo});background-size:cover;background-position:center;`
-          : '';
-        const avatarContent = p.photo ? '' : initials;
-        html += `
-          <div class="search-row">
-            <div class="search-avatar" style="${avatarStyle}">${avatarContent}</div>
-            <div class="search-info">
-              <span class="search-name">${p.name || p.username || '—'}</span>
-              <span class="search-username">@${p.username || ''}</span>
-            </div>
-          </div>`;
-      });
-      html += `</div>`;
+        const row = document.createElement('div');
+        row.className = 'search-row';
 
-      resultsEl.innerHTML = html;
+        const avatar = document.createElement('div');
+        avatar.className = 'search-avatar';
+        if (p.photo) {
+          avatar.style.backgroundImage    = `url(${p.photo})`;
+          avatar.style.backgroundSize     = 'cover';
+          avatar.style.backgroundPosition = 'center';
+        } else {
+          avatar.textContent = getInitials(p.name || p.username);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'search-info';
+        info.innerHTML = `
+          <span class="search-name">${p.name || p.username || '—'}</span>
+          <span class="search-username">@${p.username || ''}</span>`;
+
+        const btn = document.createElement('button');
+        btn.className = 'search-coach-btn';
+        const status = reqMap[p.user_id];
+        if (status === 'accepted') {
+          btn.textContent = '✓';
+          btn.classList.add('sent');
+          btn.disabled = true;
+        } else if (status === 'pending') {
+          btn.textContent = '…';
+          btn.classList.add('pend');
+          btn.disabled = true;
+        } else {
+          btn.innerHTML = '<i data-lucide="user-plus"></i>';
+          btn.addEventListener('click', async e => {
+            e.stopPropagation();
+            btn.disabled = true;
+            btn.innerHTML = '…';
+            const { error: err } = await sendCoachingRequest(p.user_id);
+            if (err && err.code !== '23505') {
+              btn.innerHTML = '!';
+              btn.disabled  = false;
+            } else {
+              btn.textContent = '…';
+              btn.classList.add('pend');
+            }
+          });
+        }
+
+        row.appendChild(avatar);
+        row.appendChild(info);
+        row.appendChild(btn);
+        card.appendChild(row);
+      });
+
+      resultsEl.appendChild(card);
       lucide.createIcons();
     }
 

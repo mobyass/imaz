@@ -29,6 +29,65 @@ function closeModal() {
   modalDateKey = null;
 }
 
+// ── EXERCISE HISTORY (autocomplete) ───────────────────────
+const EXO_HISTORY_KEY = 'imaz_exo_history';
+const EXO_HISTORY_MAX = 50;
+
+function getExoHistory() {
+  return JSON.parse(localStorage.getItem(EXO_HISTORY_KEY) || '[]');
+}
+
+function addToExoHistory(names) {
+  let history = getExoHistory();
+  names.forEach(name => {
+    if (!name.trim()) return;
+    history = history.filter(n => n !== name.trim());
+    history.unshift(name.trim());
+  });
+  localStorage.setItem(EXO_HISTORY_KEY, JSON.stringify(history.slice(0, EXO_HISTORY_MAX)));
+}
+
+function removeFromExoHistory(name) {
+  const history = getExoHistory().filter(n => n !== name);
+  localStorage.setItem(EXO_HISTORY_KEY, JSON.stringify(history));
+}
+
+function attachExoSuggestions(input, dropdown) {
+  function render(filter) {
+    const history  = getExoHistory();
+    const q        = filter.toLowerCase().trim();
+    const filtered = (q ? history.filter(n => n.toLowerCase().includes(q)) : history).slice(0, 8);
+
+    if (filtered.length === 0) { dropdown.style.display = 'none'; return; }
+
+    dropdown.innerHTML = filtered.map(n => `
+      <div class="exo-sugg-item" data-name="${n.replace(/"/g, '&quot;')}">
+        <span class="exo-sugg-name">${n}</span>
+        <button class="exo-sugg-del" type="button">×</button>
+      </div>`).join('');
+
+    dropdown.querySelectorAll('.exo-sugg-item').forEach(item => {
+      item.querySelector('.exo-sugg-name').addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = item.dataset.name;
+        input.classList.remove('input-error');
+        dropdown.style.display = 'none';
+      });
+      item.querySelector('.exo-sugg-del').addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        removeFromExoHistory(item.dataset.name);
+        render(input.value);
+      });
+    });
+    dropdown.style.display = '';
+  }
+
+  input.addEventListener('focus', () => render(input.value));
+  input.addEventListener('input', () => render(input.value));
+  input.addEventListener('blur',  () => setTimeout(() => { dropdown.style.display = 'none'; }, 180));
+}
+
 // ── EXERCISE FORM ─────────────────────────────────────────
 function addExercise(data = {}) {
   const container = document.getElementById('modal-exercises');
@@ -62,7 +121,10 @@ function addExercise(data = {}) {
 
   item.innerHTML = `
     <div class="exo-item-header">
-      <input type="text" class="exo-name-input" placeholder="Nom de l'exercice" value="${data.name || ''}">
+      <div class="exo-name-wrap">
+        <input type="text" class="exo-name-input" placeholder="Nom de l'exercice" value="${data.name || ''}" autocomplete="off">
+        <div class="exo-sugg-dropdown" style="display:none"></div>
+      </div>
       <button class="exo-remove-btn"><i data-lucide="trash-2"></i></button>
     </div>
 
@@ -116,8 +178,12 @@ function addExercise(data = {}) {
 
   const customView = item.querySelector('.exo-sets-custom');
 
-  item.querySelector('.exo-name-input').addEventListener('input', () => {
-    item.querySelector('.exo-name-input').classList.remove('input-error');
+  const nameInput  = item.querySelector('.exo-name-input');
+  const nameDrop   = item.querySelector('.exo-sugg-dropdown');
+  attachExoSuggestions(nameInput, nameDrop);
+
+  nameInput.addEventListener('input', () => {
+    nameInput.classList.remove('input-error');
     if (!document.querySelector('.exo-name-input.input-error'))
       document.getElementById('modal-save-error').hidden = true;
   });
@@ -272,6 +338,7 @@ function saveModal() {
     if (name && sets.length > 0) exercises.push({ name, bodyweight: false, sets });
   });
 
+  addToExoHistory(exercises.map(e => e.name));
   persistSession(modalDateKey, exercises);
   closeModal();
   renderWeek();

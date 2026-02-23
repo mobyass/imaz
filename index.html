@@ -74,6 +74,27 @@
     </button>
   </nav>
 
+  <!-- CALENDRIER POPUP -->
+  <div class="modal-overlay" id="cal-popup-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Calendrier</h3>
+        <button class="modal-close" id="cal-popup-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="sched-cal">
+        <div class="sched-cal-nav">
+          <button class="sched-cal-arrow" id="cal-popup-prev"><i data-lucide="chevron-left"></i></button>
+          <span class="sched-cal-label" id="cal-popup-label"></span>
+          <button class="sched-cal-arrow" id="cal-popup-next"><i data-lucide="chevron-right"></i></button>
+        </div>
+        <div class="sched-cal-weekdays">
+          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+        <div class="sched-cal-grid" id="cal-popup-grid"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- TIMER MODAL -->
   <div class="timer-overlay" id="rest-timer-overlay">
     <div class="timer-modal">
@@ -194,17 +215,17 @@
   <script src="js/app.js"></script>
   <script src="js/timer.js"></script>
   <script>
-    checkAuth();
-    // Badge notifications non lues
-    (function() {
-      const notifs = JSON.parse(localStorage.getItem('imaz_notifications') || '[]');
-      const unread = notifs.filter(n => !n.read).length;
-      if (unread > 0) {
+    checkAuth().then(async () => {
+      const notifs     = JSON.parse(localStorage.getItem('imaz_notifications') || '[]');
+      const localCount = notifs.filter(n => !n.read).length;
+      const invites    = await loadPendingInvitations();
+      const total      = localCount + invites.length;
+      if (total > 0) {
         const badge = document.getElementById('notif-badge');
-        badge.textContent = unread > 9 ? '9+' : unread;
+        badge.textContent = total > 9 ? '9+' : total;
         badge.style.display = '';
       }
-    })();
+    });
   </script>
 
 </body>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap');
+
 /* ── RESET & VARIABLES ── */
 * {
   margin: 0;
@@ -75,7 +77,8 @@ header {
 }
 
 .logo {
-  font-size: 22px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.5px;
 }
