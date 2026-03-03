@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Athlètes – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; }
+
+    .prat-list { padding: 8px 16px 40px; }
+
+    .prat-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 2px 8px;
+    }
+
+    .prat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .prat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .prat-row:first-child { border-top: none; }
+
+    .prat-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .prat-info { flex: 1; min-width: 0; }
+    .prat-name { font-size: 14px; font-weight: 600; }
+    .prat-username { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .prat-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 80px 24px;
+      color: var(--text-muted);
+    }
+    .prat-empty-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .prat-empty-icon svg { width: 26px; height: 26px; }
+    .prat-empty p { font-size: 14px; text-align: center; margin: 0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Athlètes</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <div class="prat-list" id="prat-list">
+    <p style="padding:24px;color:var(--text-muted);text-align:center">Chargement…</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    lucide.createIcons();
+
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    }
+
+    checkAuth().then(async () => {
+      const listEl = document.getElementById('prat-list');
+      const { data: { session } } = await _supabase.auth.getSession();
+
+      const { data: accepted } = await _supabase
+        .from('coaching_requests')
+        .select('recipient_id')
+        .eq('sender_id', session.user.id)
+        .eq('status', 'accepted');
+
+      if (!accepted || accepted.length === 0) {
+        listEl.innerHTML = `
+          <div class="prat-empty">
+            <div class="prat-empty-icon"><i data-lucide="users"></i></div>
+            <p>Aucun athlète pour l'instant.<br>Recherche des personnes et envoie-leur une demande.</p>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+
+      const ids = accepted.map(r => r.recipient_id);
+      const { data: profiles } = await _supabase
+        .from('profiles')
+        .select('user_id, name, username, photo')
+        .in('user_id', ids);
+
+      if (!profiles || profiles.length === 0) {
+        listEl.innerHTML = `<div class="prat-empty"><p>Impossible de charger les profils.</p></div>`;
+        return;
+      }
+
+      listEl.innerHTML = '';
+
+      const sectionLabel = document.createElement('div');
+      sectionLabel.className = 'prat-section-label';
+      sectionLabel.textContent = `${profiles.length} athlète${profiles.length > 1 ? 's' : ''}`;
+      listEl.appendChild(sectionLabel);
+
+      const card = document.createElement('div');
+      card.className = 'prat-card';
+
+      profiles.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'prat-row';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'prat-avatar';
+        if (p.photo) {
+          avatar.style.backgroundImage    = `url(${p.photo})`;
+          avatar.style.backgroundSize     = 'cover';
+          avatar.style.backgroundPosition = 'center';
+        } else {
+          avatar.textContent = getInitials(p.name || p.username);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'prat-info';
+        info.innerHTML = `
+          <div class="prat-name">${p.name || p.username || '—'}</div>
+          <div class="prat-username">@${p.username || ''}</div>`;
+
+        row.appendChild(avatar);
+        row.appendChild(info);
+        card.appendChild(row);
+      });
+
+      listEl.appendChild(card);
+    });
+  </script>
+
+</body>
+</html>

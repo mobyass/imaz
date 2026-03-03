@@ -47,10 +47,6 @@
         <span class="profil-stat-label">Séries</span>
       </div>
     </div>
-    <div class="profil-chart-wrap">
-      <svg class="profil-chart-svg" id="profil-chart-svg" viewBox="0 0 280 64" preserveAspectRatio="none"></svg>
-      <div class="profil-chart-labels" id="profil-chart-labels"></div>
-    </div>
   </div>
 
   <!-- ── LIENS ── -->
@@ -63,11 +59,11 @@
       </div>
       <i data-lucide="chevron-right" class="profil-link-arrow"></i>
     </div>
-    <div class="profil-link-row" onclick="window.location.href='pratiquants.html'">
+    <div class="profil-link-row" onclick="window.location.href='athletes.html'">
       <div class="profil-link-icon"><i data-lucide="users"></i></div>
       <div class="profil-link-info">
-        <span class="profil-link-title">Pratiquants</span>
-        <span class="profil-link-sub">Personnes que tu suis</span>
+        <span class="profil-link-title">Athlètes</span>
+        <span class="profil-link-sub">Tes athlètes</span>
       </div>
       <i data-lucide="chevron-right" class="profil-link-arrow"></i>
     </div>
@@ -127,7 +123,7 @@
       let ses = 0, exo = 0, sets = 0, totalPast = 0, totalCompleted = 0;
 
       Object.entries(sessions).forEach(([key, s]) => {
-        if (key < todayKey) totalPast++;
+        if (key < todayKey || (key === todayKey && s.completed)) totalPast++;
         if (s.completed) totalCompleted++;
         if (key >= monKey && key <= sunKey && key <= todayKey) {
           ses++;
@@ -151,75 +147,6 @@
     }
     computeStats();
 
-    // ── GRAPHE 8 SEMAINES ──
-    function renderChart() {
-      const sessions = getSessions();
-      const today    = new Date();
-      const dow      = today.getDay() || 7;
-      const curMon   = new Date(today);
-      curMon.setDate(today.getDate() - (dow - 1));
-      curMon.setHours(0, 0, 0, 0);
-
-      const MON = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-      const weeks = [];
-
-      for (let w = 7; w >= 0; w--) {
-        const wMon = new Date(curMon);
-        wMon.setDate(curMon.getDate() - w * 7);
-        const wSun = new Date(wMon);
-        wSun.setDate(wMon.getDate() + 6);
-        const wMonKey = dateToKey(wMon);
-        const wSunKey = dateToKey(wSun);
-
-        let count = 0;
-        Object.entries(sessions).forEach(([key, s]) => {
-          if (key >= wMonKey && key <= wSunKey && s.completed) count++;
-        });
-        weeks.push({ count, monthIdx: wMon.getMonth() });
-      }
-
-      const maxCount = Math.max(...weeks.map(w => w.count), 1);
-      const svg      = document.getElementById('profil-chart-svg');
-      const labelsEl = document.getElementById('profil-chart-labels');
-      const VW = 280, H = 64;
-      const barW    = 22;
-      const gap     = (VW - barW * 8) / 9;
-      const maxBarH = H - 2;
-
-      svg.innerHTML = '';
-      labelsEl.innerHTML = '';
-
-      weeks.forEach((week, i) => {
-        const barH = week.count > 0
-          ? Math.max((week.count / maxCount) * maxBarH, 6) : 3;
-        const x    = gap + i * (barW + gap);
-        const y    = H - barH;
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('x', x);
-        rect.setAttribute('y', y);
-        rect.setAttribute('width', barW);
-        rect.setAttribute('height', barH);
-        rect.setAttribute('rx', 0);
-        rect.setAttribute('fill', week.count > 0 ? 'var(--accent)' : 'var(--surface-2)');
-        rect.setAttribute('stroke', 'none');
-        svg.appendChild(rect);
-      });
-
-      let i = 0;
-      while (i < weeks.length) {
-        const monthIdx = weeks[i].monthIdx;
-        let j = i;
-        while (j < weeks.length && weeks[j].monthIdx === monthIdx) j++;
-        const cx  = (gap + i * (barW + gap) + barW / 2 + gap + (j - 1) * (barW + gap) + barW / 2) / 2;
-        const pct = (cx / VW * 100).toFixed(2);
-        const span = document.createElement('span');
-        span.textContent = MON[monthIdx];
-        span.style.cssText = `position:absolute;left:${pct}%;transform:translateX(-50%)`;
-        labelsEl.appendChild(span);
-        i = j;
-      }
-    }
-    renderChart();
   </script>
 
   <nav class="bottom-nav">

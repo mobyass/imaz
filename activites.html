@@ -6,8 +6,11 @@
   <title>Activités – Imaz</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/form.css">
+  <link rel="stylesheet" href="css/home.css">
   <style>
-    body { overflow-y: auto; height: auto; min-height: 100vh; }
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 80px; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; }
   </style>
 </head>
 <body>
@@ -20,11 +23,26 @@
 
   <div class="activites-list" id="activites-list"></div>
 
+  <!-- MODAL VUE SÉANCE (lecture seule) -->
+  <div class="modal-overlay" id="session-view-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3>Séance</h3>
+          <span class="modal-date-label" id="session-view-date"></span>
+        </div>
+        <button class="modal-close" id="session-view-close"><i data-lucide="x"></i></button>
+      </div>
+      <div id="session-view-content"></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="js/core.js"></script>
+  <script src="js/modal.js"></script>
   <script>
     checkAuth();
     lucide.createIcons();
@@ -40,9 +58,8 @@
       const todayKey = dateToKey(new Date());
       const list     = document.getElementById('activites-list');
 
-      // Same logic as the calendar: any past session that exists, completed or not
       const past = Object.entries(sessions)
-        .filter(([key]) => key < todayKey)
+        .filter(([key, s]) => key < todayKey || (key === todayKey && s.completed))
         .sort((a, b) => b[0].localeCompare(a[0]));
 
       if (past.length === 0) {
@@ -73,7 +90,7 @@
               : `${exoCount} exercice${exoCount !== 1 ? 's' : ''} · ${setCount} série${setCount !== 1 ? 's' : ''}`;
             const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
             html += `
-              <div class="profil-link-row" style="cursor:pointer" onclick="window.location.href='index.html?view=${key}'">
+              <div class="profil-link-row" style="cursor:pointer" onclick="openSessionViewModal('${key}')">
                 <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
                 <div class="profil-link-info">
                   <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
@@ -91,6 +108,19 @@
 
     render();
   </script>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="window.location.href='index.html'">
+      <i data-lucide="home"></i><span>Accueil</span>
+    </button>
+    <button class="nav-btn" onclick="window.location.href='share-session.html'">
+      <i data-lucide="plus"></i><span>Partager</span>
+    </button>
+    <button class="nav-btn" onclick="window.location.href='reglages.html'">
+      <i data-lucide="user"></i><span>Profil</span>
+    </button>
+  </nav>
+  <script>lucide.createIcons();</script>
 
 </body>
 </html>
