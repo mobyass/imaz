@@ -423,6 +423,8 @@ function finishSession(dateKey) {
   if (!session) return;
   session.completed = !session.completed;
   localStorage.setItem('imaz_sessions', JSON.stringify(sessions));
+  if (typeof syncSessionToSupabase === 'function')
+    syncSessionToSupabase(dateKey, sessions[dateKey]);
   refreshHome();
 }
 

@@ -120,14 +120,16 @@
         .eq('user_id', athleteId)
         .order('date_key', { ascending: false });
 
-      if (error || !rows || rows.length === 0) {
-        list.innerHTML = '<p class="activites-empty">Aucune activité pour cet athlète.</p>';
+      const completed = (rows || []).filter(r => r.data && r.data.completed === true);
+
+      if (error || completed.length === 0) {
+        list.innerHTML = '<p class="activites-empty">Aucune séance terminée pour cet athlète.</p>';
         return;
       }
 
       // Grouper par année-mois
       const groups = {};
-      rows.forEach(r => {
+      completed.forEach(r => {
         const ym = r.date_key.slice(0, 7);
         if (!groups[ym]) groups[ym] = [];
         groups[ym].push(r);
