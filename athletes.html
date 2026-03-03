@@ -146,6 +146,11 @@
       profiles.forEach(p => {
         const row = document.createElement('div');
         row.className = 'prat-row';
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => {
+          const name = encodeURIComponent(p.name || p.username || '');
+          window.location.href = `athlete-profile.html?id=${p.user_id}&name=${name}`;
+        });
 
         const avatar = document.createElement('div');
         avatar.className = 'prat-avatar';
@@ -163,8 +168,13 @@
           <div class="prat-name">${p.name || p.username || '—'}</div>
           <div class="prat-username">@${p.username || ''}</div>`;
 
+        const arrow = document.createElement('i');
+        arrow.setAttribute('data-lucide', 'chevron-right');
+        arrow.style.color = 'var(--text-muted)';
+
         row.appendChild(avatar);
         row.appendChild(info);
+        row.appendChild(arrow);
         card.appendChild(row);
       });
 

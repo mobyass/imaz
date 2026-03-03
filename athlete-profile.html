@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activités athlète – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/form.css">
+  <link rel="stylesheet" href="css/home.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 40px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title" id="page-title">Athlète</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <div class="activites-list" id="activites-list">
+    <p style="padding:24px;color:var(--text-muted);text-align:center">Chargement…</p>
+  </div>
+
+  <!-- MODAL VUE SÉANCE (lecture seule) -->
+  <div class="modal-overlay" id="session-view-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3>Séance</h3>
+          <span class="modal-date-label" id="session-view-date"></span>
+        </div>
+        <button class="modal-close" id="session-view-close"><i data-lucide="x"></i></button>
+      </div>
+      <div id="session-view-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    lucide.createIcons();
+
+    const params    = new URLSearchParams(location.search);
+    const athleteId = params.get('id');
+    const name      = decodeURIComponent(params.get('name') || 'Athlète');
+    document.getElementById('page-title').textContent = name;
+
+    function formatDayLabel(key) {
+      const d = parseKey(key);
+      return `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+    }
+
+    // Ouvre la modal avec les données directement (sans localStorage)
+    function openAthleteSessionModal(data, key) {
+      const settings = getSettings();
+      document.getElementById('session-view-date').textContent = formatDayLabel(key);
+
+      const content    = document.getElementById('session-view-content');
+      const exercises  = data.exercises || [];
+
+      if (exercises.length === 0) {
+        content.innerHTML = '<p class="empty-state">Aucun exercice enregistré</p>';
+      } else {
+        content.innerHTML = exercises.map(e => {
+          const sets = normalizeSets(e);
+          return `
+            <div class="seance-log-exo">
+              <div class="log-exo-name">${e.name}</div>
+              <div class="log-table log-table--readonly">
+                <div class="log-table-head">
+                  <span></span><span>Rép</span><span>${settings.weightUnit}</span>
+                </div>
+                ${sets.map((s, si) => {
+                  const done  = e.done && e.done[si] ? e.done[si] : {};
+                  const repsV = done.reps   !== undefined && done.reps   !== null ? done.reps   : (s.reps   ?? '');
+                  const wgtV  = done.weight !== undefined && done.weight !== null ? done.weight : (s.weight ?? '');
+                  const isVal = done.validated === true;
+                  return `
+                    <div class="log-table-row ${isVal ? 'validated' : ''}">
+                      <span class="log-set-num">S${si + 1}</span>
+                      <span class="log-val-text">${repsV !== '' ? repsV : '—'}</span>
+                      <span class="log-val-text">${wgtV  !== '' ? wgtV  : '—'}</span>
+                    </div>`;
+                }).join('')}
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      document.getElementById('session-view-overlay').classList.add('open');
+      lucide.createIcons();
+    }
+
+    // Fermer la modal
+    document.getElementById('session-view-close').addEventListener('click', () => {
+      document.getElementById('session-view-overlay').classList.remove('open');
+    });
+    document.getElementById('session-view-overlay').addEventListener('click', e => {
+      if (e.target.id === 'session-view-overlay')
+        document.getElementById('session-view-overlay').classList.remove('open');
+    });
+
+    checkAuth().then(async () => {
+      const list = document.getElementById('activites-list');
+
+      if (!athleteId) {
+        list.innerHTML = '<p class="activites-empty">Athlète introuvable.</p>';
+        return;
+      }
+
+      const { data: rows, error } = await _supabase
+        .from('sessions')
+        .select('date_key, data')
+        .eq('user_id', athleteId)
+        .order('date_key', { ascending: false });
+
+      if (error || !rows || rows.length === 0) {
+        list.innerHTML = '<p class="activites-empty">Aucune activité pour cet athlète.</p>';
+        return;
+      }
+
+      // Grouper par année-mois
+      const groups = {};
+      rows.forEach(r => {
+        const ym = r.date_key.slice(0, 7);
+        if (!groups[ym]) groups[ym] = [];
+        groups[ym].push(r);
+      });
+
+      let html = '';
+      Object.entries(groups)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .forEach(([ym, entries]) => {
+          const [y, m] = ym.split('-').map(Number);
+          html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
+          html += `<div class="profil-links activites-group">`;
+          entries.forEach(r => {
+            const s        = r.data;
+            const key      = r.date_key;
+            const exoCount = s.exercises ? s.exercises.length : 0;
+            const setCount = s.exercises
+              ? s.exercises.reduce((acc, e) => acc + (e.sets || []).length, 0) : 0;
+            const sub = exoCount === 0
+              ? 'Séance planifiée'
+              : `${exoCount} exercice${exoCount !== 1 ? 's' : ''} · ${setCount} série${setCount !== 1 ? 's' : ''}`;
+            const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
+            // Encode data as JSON attribute pour l'onclick
+            const dataAttr = encodeURIComponent(JSON.stringify(s));
+            html += `
+              <div class="profil-link-row" style="cursor:pointer"
+                   onclick="openAthleteSessionModal(JSON.parse(decodeURIComponent('${dataAttr}')), '${key}')">
+                <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
+                <div class="profil-link-info">
+                  <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
+                  <span class="profil-link-sub">${sub}</span>
+                </div>
+                <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+              </div>`;
+          });
+          html += `</div>`;
+        });
+
+      list.innerHTML = html;
+      lucide.createIcons();
+    });
+  </script>
+
+</body>
+</html>
