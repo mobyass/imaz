@@ -81,8 +81,10 @@
   <script>
     lucide.createIcons();
 
-    document.getElementById('link-athletes').style.display = '';
-    document.getElementById('nav-partager-profil').style.display = '';
+    if ((localStorage.getItem('imaz_profil_role') || 'athlete') === 'coach') {
+      document.getElementById('link-athletes').style.display = '';
+      document.getElementById('nav-partager-profil').style.display = '';
+    }
 
     // ── AFFICHAGE PROFIL (lecture seule) ──
     function getInitials(name) {

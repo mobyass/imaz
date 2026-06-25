@@ -59,6 +59,17 @@
       </div>
     </section>
 
+    <!-- Bannière coach -->
+    <div id="coach-banner" style="display:none;margin:0 16px 16px;background:linear-gradient(135deg,var(--surface) 0%,rgba(79,142,247,0.10) 100%);border:1px solid var(--accent);border-radius:var(--radius);padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-size:14px;font-weight:700">Passe en mode Coach</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Partage des séances, suis tes athlètes</div>
+      </div>
+      <button onclick="window.location.href='pricing.html'" style="background:var(--accent);color:white;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+        Devenir Coach
+      </button>
+    </div>
+
   </div>
 
   <!-- NAV BAS -->
@@ -215,7 +226,14 @@
   <script src="js/app.js"></script>
   <script src="js/timer.js"></script>
   <script>
-    document.getElementById('nav-partager').style.display = '';
+    const _role = localStorage.getItem('imaz_profil_role') || 'athlete';
+    const _plan = localStorage.getItem('imaz_plan') || 'free';
+    if (_role === 'coach') {
+      document.getElementById('nav-partager').style.display = '';
+    }
+    if (_role !== 'coach' && _plan !== 'pro') {
+      document.getElementById('coach-banner').style.display = 'flex';
+    }
 
     function navGuard(url) {
       if (localStorage.getItem('imaz_guest') === 'true') {

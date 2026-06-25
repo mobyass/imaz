@@ -136,6 +136,26 @@
       </div>
     </div>
 
+    <!-- ── ABONNEMENT ── -->
+    <div class="settings-section">
+      <h3 class="settings-section-title">Abonnement</h3>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-label">Plan actuel</span>
+          <span class="settings-desc" id="plan-desc">Chargement…</span>
+        </div>
+        <button id="btn-subscribe" class="btn-primary"
+          style="flex-shrink:0;font-size:13px;padding:6px 14px;display:none"
+          onclick="window.location.href='pricing.html'">
+          S'abonner
+        </button>
+        <span id="plan-active-badge"
+          style="display:none;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-dim);border-radius:20px;padding:4px 12px;flex-shrink:0">
+          ⭐ Pro
+        </span>
+      </div>
+    </div>
+
     <!-- ── COMPTE ── -->
     <div class="settings-section" style="margin-top:8px">
       <div class="settings-row">
@@ -167,7 +187,7 @@
       document.getElementById('plan-desc').textContent = 'Pro — actif';
       document.getElementById('plan-active-badge').style.display = '';
     } else {
-      document.getElementById('plan-desc').textContent = 'Gratuit';
+      document.getElementById('plan-desc').textContent = 'Gratuit · Passe à Pro pour débloquer le mode Coach';
       document.getElementById('btn-subscribe').style.display = '';
     }
   </script>
@@ -304,7 +324,11 @@
       btn.addEventListener('click', async () => {
         const newRole = btn.dataset.value;
         const plan = localStorage.getItem('imaz_plan') || 'free';
-        // Restrictions désactivées — tout est gratuit pour l'instant
+        if (newRole === 'coach' && plan !== 'pro') {
+          window.location.href = 'pricing.html';
+          return;
+        }
+        if (newRole === 'athlete' && plan === 'pro') return;
         roleToggle.querySelectorAll('.toggle-opt').forEach(b =>
           b.classList.toggle('active', b === btn));
         localStorage.setItem('imaz_profil_role', newRole);
