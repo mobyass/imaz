@@ -278,8 +278,8 @@
           body: { user_id: user.id, email: user.email },
         });
 
-        if (fnError) throw new Error(fnError.message);
-        if (!json?.url) throw new Error('Pas d\'URL reçue');
+        if (fnError) throw new Error(json?.error || fnError.message);
+        if (!json?.url) throw new Error(json?.error || 'Pas d\'URL reçue');
         window.location.href = json.url;
 
       } catch (e) {
