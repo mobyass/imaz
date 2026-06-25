@@ -66,10 +66,10 @@
     <button class="nav-btn active">
       <i data-lucide="home"></i><span>Accueil</span>
     </button>
-    <button class="nav-btn" id="nav-partager" style="display:none" onclick="window.location.href='share-session.html'">
+    <button class="nav-btn" id="nav-partager" style="display:none" onclick="navGuard('share-session.html')">
       <i data-lucide="plus"></i><span>Partager</span>
     </button>
-    <button class="nav-btn">
+    <button class="nav-btn" onclick="navGuard('reglages.html')">
       <i data-lucide="user"></i><span>Profil</span>
     </button>
   </nav>
@@ -216,6 +216,23 @@
   <script src="js/timer.js"></script>
   <script>
     document.getElementById('nav-partager').style.display = '';
+
+    function navGuard(url) {
+      if (localStorage.getItem('imaz_guest') === 'true') {
+        const toast = document.createElement('div');
+        toast.textContent = 'Connecte-toi pour accéder à cette fonctionnalité';
+        Object.assign(toast.style, {
+          position:'fixed', bottom:'90px', left:'50%', transform:'translateX(-50%)',
+          background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)',
+          padding:'10px 18px', borderRadius:'20px', fontWeight:'600', fontSize:'13px',
+          zIndex:'9999', whiteSpace:'nowrap', boxShadow:'0 4px 20px rgba(0,0,0,0.3)'
+        });
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); window.location.href = 'login.html'; }, 1800);
+        return;
+      }
+      window.location.href = url;
+    }
 
     checkAuth().then(async () => {
       // Retour après paiement Stripe
