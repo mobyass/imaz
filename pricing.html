@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    body {
+      overflow-y: auto;
+      height: auto;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    .pricing-wrap {
+      padding: 20px 16px;
+      max-width: 420px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .pricing-hero {
+      text-align: center;
+      padding: 12px 0 8px;
+    }
+
+    .pricing-hero h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .pricing-hero p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .plan-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .plan-card.pro {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--surface) 0%, rgba(79,142,247,0.08) 100%);
+    }
+
+    .plan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .plan-name {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .plan-badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--accent);
+      color: white;
+      border-radius: 20px;
+      padding: 3px 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .plan-price {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: var(--text);
+    }
+
+    .plan-price span {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .plan-features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .plan-feature {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .plan-feature.included { color: var(--text); }
+
+    .feature-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .feature-icon.yes {
+      background: rgba(72, 199, 142, 0.15);
+      color: #48c78e;
+    }
+
+    .feature-icon.no {
+      background: var(--surface-2);
+      color: var(--text-muted);
+    }
+
+    .feature-icon svg { width: 12px; height: 12px; }
+
+    .plan-cta { margin-top: 4px; }
+
+    .current-badge {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 10px;
+    }
+
+    .btn-upgrade {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-upgrade:hover { opacity: 0.85; }
+    .btn-upgrade:disabled { opacity: 0.5; cursor: default; }
+
+    .checkout-error {
+      font-size: 13px;
+      color: #e53e3e;
+      text-align: center;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Plans</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <div class="pricing-wrap">
+
+    <div class="pricing-hero">
+      <h1>Passe à Pro</h1>
+      <p>Débloque toutes les fonctionnalités de coaching</p>
+    </div>
+
+    <!-- Plan Gratuit -->
+    <div class="plan-card">
+      <div class="plan-header">
+        <div class="plan-name">Gratuit</div>
+      </div>
+      <div class="plan-price">0€ <span>/ mois</span></div>
+      <div class="plan-features">
+        <div class="plan-feature included">
+          <div class="feature-icon yes"><i data-lucide="check"></i></div>
+          Carnet d'entraînement personnel
+        </div>
+        <div class="plan-feature included">
+          <div class="feature-icon yes"><i data-lucide="check"></i></div>
+          Calendrier & statistiques
+        </div>
+        <div class="plan-feature">
+          <div class="feature-icon no"><i data-lucide="x"></i></div>
+          Partage de séances
+        </div>
+        <div class="plan-feature">
+          <div class="feature-icon no"><i data-lucide="x"></i></div>
+          Suivi d'athlètes
+        </div>
+        <div class="plan-feature">
+          <div class="feature-icon no"><i data-lucide="x"></i></div>
+          Invitations de coaching
+        </div>
+      </div>
+      <div class="current-badge" id="free-current" style="display:none">✓ Ton plan actuel</div>
+    </div>
+
+    <!-- Plan Pro -->
+    <div class="plan-card pro">
+      <div class="plan-header">
+        <div class="plan-name">Pro</div>
+        <div class="plan-badge">Recommandé</div>
+      </div>
+      <div class="plan-price" id="pro-price">—</div>
+      <div class="plan-features">
+        <div class="plan-feature included">
+          <div class="feature-icon yes"><i data-lucide="check"></i></div>
+          Tout du plan Gratuit
+        </div>
+        <div class="plan-feature included">
+          <div class="feature-icon yes"><i data-lucide="check"></i></div>
+          Partage de séances illimité
+        </div>
+        <div class="plan-feature included">
+          <div class="feature-icon yes"><i data-lucide="check"></i></div>
+          Suivi d'athlètes
+        </div>
+        <div class="plan-feature included">
+          <div class="feature-icon yes"><i data-lucide="check"></i></div>
+          Invitations & coaching
+        </div>
+      </div>
+      <div class="plan-cta">
+        <div class="checkout-error" id="checkout-error"></div>
+        <div class="current-badge" id="pro-current" style="display:none">✓ Ton plan actuel</div>
+        <button class="btn-upgrade" id="btn-upgrade">Passer à Pro</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+
+    async function init() {
+      await checkAuth();
+      const currentPlan = localStorage.getItem('imaz_plan') || 'free';
+      if (currentPlan === 'pro') {
+        document.getElementById('pro-current').style.display = '';
+        document.getElementById('btn-upgrade').style.display = 'none';
+        document.getElementById('pro-price').textContent     = 'Actif';
+      } else {
+        document.getElementById('free-current').style.display = '';
+        document.getElementById('pro-price').innerHTML        = '9,99€ <span>/ mois</span>';
+      }
+    }
+
+    document.getElementById('btn-upgrade').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-upgrade');
+      const err = document.getElementById('checkout-error');
+      btn.disabled    = true;
+      btn.textContent = '…';
+      err.textContent = '';
+
+      try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        const { data: { user } }    = await _supabase.auth.getUser();
+
+        if (!user || !session) { window.location.href = 'login.html'; return; }
+
+        const { data: json, error: fnError } = await _supabase.functions.invoke('quick-responder', {
+          body: { user_id: user.id, email: user.email },
+        });
+
+        if (fnError) throw new Error(fnError.message);
+        if (!json?.url) throw new Error('Pas d\'URL reçue');
+        window.location.href = json.url;
+
+      } catch (e) {
+        err.textContent = e.message || 'Une erreur est survenue.';
+        btn.disabled    = false;
+        btn.textContent = 'Passer à Pro';
+      }
+    });
+
+    init();
+  </script>
+
+</body>
+</html>

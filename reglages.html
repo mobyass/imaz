@@ -59,7 +59,7 @@
       </div>
       <i data-lucide="chevron-right" class="profil-link-arrow"></i>
     </div>
-    <div class="profil-link-row" onclick="window.location.href='athletes.html'">
+    <div class="profil-link-row" id="link-athletes" style="display:none" onclick="window.location.href='athletes.html'">
       <div class="profil-link-icon"><i data-lucide="users"></i></div>
       <div class="profil-link-info">
         <span class="profil-link-title">Athlètes</span>
@@ -77,6 +77,9 @@
   <script>checkAuth();</script>
   <script>
     lucide.createIcons();
+
+    document.getElementById('link-athletes').style.display = '';
+    document.getElementById('nav-partager-profil').style.display = '';
 
     // ── AFFICHAGE PROFIL (lecture seule) ──
     function getInitials(name) {
@@ -127,8 +130,10 @@
         if (s.completed) totalCompleted++;
         if (key >= monKey && key <= sunKey && key <= todayKey) {
           ses++;
-          exo  += (s.exercises || []).length;
-          (s.exercises || []).forEach(e => sets += (e.sets || []).length);
+          exo  += (s.exercises || []).filter(e =>
+            (e.done || []).some(d => d.validated === true)).length;
+          (s.exercises || []).forEach(e =>
+            sets += (e.done || []).filter(d => d.validated === true).length);
         }
       });
 
@@ -153,7 +158,7 @@
     <button class="nav-btn" onclick="window.location.href='index.html'">
       <i data-lucide="home"></i><span>Accueil</span>
     </button>
-    <button class="nav-btn" onclick="window.location.href='share-session.html'">
+    <button class="nav-btn" id="nav-partager-profil" style="display:none" onclick="window.location.href='share-session.html'">
       <i data-lucide="plus"></i><span>Partager</span>
     </button>
     <button class="nav-btn active">

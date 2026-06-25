@@ -66,7 +66,7 @@
     <button class="nav-btn active">
       <i data-lucide="home"></i><span>Accueil</span>
     </button>
-    <button class="nav-btn" onclick="window.location.href='share-session.html'">
+    <button class="nav-btn" id="nav-partager" style="display:none" onclick="window.location.href='share-session.html'">
       <i data-lucide="plus"></i><span>Partager</span>
     </button>
     <button class="nav-btn">
@@ -215,11 +215,38 @@
   <script src="js/app.js"></script>
   <script src="js/timer.js"></script>
   <script>
+    document.getElementById('nav-partager').style.display = '';
+
     checkAuth().then(async () => {
-      const notifs     = JSON.parse(localStorage.getItem('imaz_notifications') || '[]');
-      const localCount = notifs.filter(n => !n.read).length;
-      const invites    = await loadPendingInvitations();
-      const total      = localCount + invites.length;
+      // Retour après paiement Stripe
+      if (new URLSearchParams(location.search).get('plan') === 'success') {
+        localStorage.setItem('imaz_plan', 'pro');
+        localStorage.setItem('imaz_profil_role', 'coach');
+        const { data: { user: u } } = await _supabase.auth.getUser();
+        if (u) {
+          await _supabase.from('profiles')
+            .update({ plan: 'pro', role: 'coach' })
+            .eq('user_id', u.id);
+        }
+        history.replaceState(null, '', 'index.html');
+        const toast = document.createElement('div');
+        toast.textContent = '🎉 Bienvenue sur Imaz Pro !';
+        Object.assign(toast.style, {
+          position:'fixed', bottom:'90px', left:'50%', transform:'translateX(-50%)',
+          background:'var(--accent)', color:'white', padding:'10px 20px',
+          borderRadius:'20px', fontWeight:'700', fontSize:'14px', zIndex:'9999',
+          boxShadow:'0 4px 20px rgba(79,142,247,0.4)'
+        });
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+      }
+      const notifs      = JSON.parse(localStorage.getItem('imaz_notifications') || '[]');
+      const localCount  = notifs.filter(n => !n.read).length;
+      const [invites, coachReqs] = await Promise.all([
+        loadPendingInvitations(),
+        loadPendingCoachingRequests(),
+      ]);
+      const total = localCount + invites.length + coachReqs.length;
       if (total > 0) {
         const badge = document.getElementById('notif-badge');
         badge.textContent = total > 9 ? '9+' : total;

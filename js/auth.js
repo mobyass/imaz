@@ -4,7 +4,9 @@
 // ── GUARD ─────────────────────────────────────────────────
 // Call at the top of every protected page.
 // Returns the current user, or redirects to login.html.
+// Returns null (without redirect) for guest sessions.
 async function checkAuth() {
+  if (localStorage.getItem('imaz_guest') === 'true') return null;
   const { data: { session } } = await _supabase.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
@@ -45,7 +47,7 @@ async function loadFromSupabase() {
   // Profile
   const { data: profileRow } = await _supabase
     .from('profiles')
-    .select('name, photo, username, role')
+    .select('name, photo, username, role, plan')
     .eq('user_id', user.id)
     .single();
 
@@ -54,6 +56,7 @@ async function loadFromSupabase() {
     if (profileRow.photo)    localStorage.setItem('imaz_profil_photo',    profileRow.photo);
     if (profileRow.username) localStorage.setItem('imaz_profil_username', profileRow.username);
     if (profileRow.role)     localStorage.setItem('imaz_profil_role',     profileRow.role);
+    if (profileRow.plan)     localStorage.setItem('imaz_plan',            profileRow.plan);
   }
 }
 
@@ -187,7 +190,9 @@ async function refuseCoachingRequest(requestId) {
 
 // ── LOGOUT ────────────────────────────────────────────────
 async function logout() {
-  await _supabase.auth.signOut();
+  const isGuest = localStorage.getItem('imaz_guest') === 'true';
+  localStorage.removeItem('imaz_guest');
+  if (!isGuest) await _supabase.auth.signOut();
   localStorage.removeItem('imaz_sessions');
   localStorage.removeItem('imaz_settings');
   localStorage.removeItem('imaz_profil_name');

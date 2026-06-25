@@ -145,9 +145,10 @@
           entries.forEach(r => {
             const s        = r.data;
             const key      = r.date_key;
-            const exoCount = s.exercises ? s.exercises.length : 0;
-            const setCount = s.exercises
-              ? s.exercises.reduce((acc, e) => acc + (e.sets || []).length, 0) : 0;
+            const exoCount = s.exercises ? s.exercises.filter(e =>
+              (e.done || []).some(d => d.validated === true)).length : 0;
+            const setCount = s.exercises ? s.exercises.reduce((acc, e) =>
+              acc + (e.done || []).filter(d => d.validated === true).length, 0) : 0;
             const sub = exoCount === 0
               ? 'Séance planifiée'
               : `${exoCount} exercice${exoCount !== 1 ? 's' : ''} · ${setCount} série${setCount !== 1 ? 's' : ''}`;

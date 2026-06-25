@@ -44,6 +44,17 @@
         <input class="settings-text-input" type="text" id="settings-username" placeholder="pseudo">
       </div>
 
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-label">Rôle</span>
+          <span class="settings-desc">Athlète ou coach</span>
+        </div>
+        <div class="toggle-group" id="toggle-role">
+          <button class="toggle-opt" data-value="athlete">Athlète</button>
+          <button class="toggle-opt" data-value="coach">Coach</button>
+        </div>
+      </div>
+
       <div class="settings-row" id="settings-save-row" style="flex-direction:column;align-items:stretch;gap:8px;display:none">
         <p class="settings-save-msg" id="profil-save-msg" style="display:none"></p>
         <button class="btn-primary" id="settings-profil-save">Enregistrer</button>
@@ -150,6 +161,15 @@
     document.getElementById('back-btn').addEventListener('click', () => history.back());
     document.getElementById('btn-logout').addEventListener('click', logout);
     lucide.createIcons();
+
+    const plan = localStorage.getItem('imaz_plan') || 'free';
+    if (plan === 'pro') {
+      document.getElementById('plan-desc').textContent = 'Pro — actif';
+      document.getElementById('plan-active-badge').style.display = '';
+    } else {
+      document.getElementById('plan-desc').textContent = 'Gratuit';
+      document.getElementById('btn-subscribe').style.display = '';
+    }
   </script>
   <script src="js/settings.js"></script>
 
@@ -275,6 +295,22 @@
       profilSaveMsg.style.display = '';
       setTimeout(() => { profilSaveMsg.style.display = 'none'; }, 3000);
     }
+
+    // ── RÔLE ──
+    const roleToggle = document.getElementById('toggle-role');
+    const currentRole = localStorage.getItem('imaz_profil_role') || 'athlete';
+    roleToggle.querySelectorAll('.toggle-opt').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === currentRole);
+      btn.addEventListener('click', async () => {
+        const newRole = btn.dataset.value;
+        const plan = localStorage.getItem('imaz_plan') || 'free';
+        // Restrictions désactivées — tout est gratuit pour l'instant
+        roleToggle.querySelectorAll('.toggle-opt').forEach(b =>
+          b.classList.toggle('active', b === btn));
+        localStorage.setItem('imaz_profil_role', newRole);
+        syncProfileToSupabase({ role: newRole });
+      });
+    });
   </script>
 
 </body>

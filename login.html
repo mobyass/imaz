@@ -152,6 +152,38 @@
     }
 
     .login-submit { margin-top: 4px; }
+
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .login-divider::before,
+    .login-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .btn-guest {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-guest:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
   </style>
 </head>
 <body>
@@ -174,6 +206,21 @@
       <div class="login-field" id="field-username" style="display:none">
         <input class="login-input no-icon" type="text" id="input-username"
                placeholder="Pseudo (unique)" autocomplete="username">
+      </div>
+
+      <!-- Rôle (inscription uniquement) -->
+      <div id="field-role" style="display:none">
+        <p class="login-role-label">Je suis…</p>
+        <div class="login-role-group">
+          <button class="login-role-opt active" id="role-athlete" type="button">
+            <i data-lucide="dumbbell"></i>
+            Athlète
+          </button>
+          <button class="login-role-opt" id="role-coach" type="button">
+            <i data-lucide="clipboard-list"></i>
+            Coach
+          </button>
+        </div>
       </div>
 
       <!-- Email -->
@@ -203,6 +250,9 @@
       <div class="login-error" id="login-error"></div>
       <button class="btn-primary login-submit" id="btn-submit">Se connecter</button>
 
+      <div class="login-divider">ou</div>
+      <button class="btn-guest" id="btn-guest">Continuer en invité</button>
+
     </div>
   </div>
 
@@ -218,7 +268,8 @@
       if (session) window.location.href = 'index.html';
     });
 
-    let mode = 'login';
+    let mode         = 'login';
+    let selectedRole = 'athlete';
 
     const tabLogin      = document.getElementById('tab-login');
     const tabSignup     = document.getElementById('tab-signup');
@@ -229,6 +280,7 @@
     const usernameInput = document.getElementById('input-username');
     const fieldUsername = document.getElementById('field-username');
     const fieldConfirm  = document.getElementById('field-confirm');
+    const fieldRole     = document.getElementById('field-role');
 
     function setMode(m) {
       mode = m;
@@ -239,8 +291,21 @@
       pwInput.autocomplete  = isSignup ? 'new-password' : 'current-password';
       fieldUsername.style.display = isSignup ? '' : 'none';
       fieldConfirm.style.display  = isSignup ? '' : 'none';
+      fieldRole.style.display     = isSignup ? '' : 'none';
       errEl.textContent = '';
     }
+
+    // ── Sélection du rôle ──
+    document.getElementById('role-athlete').addEventListener('click', () => {
+      selectedRole = 'athlete';
+      document.getElementById('role-athlete').classList.add('active');
+      document.getElementById('role-coach').classList.remove('active');
+    });
+    document.getElementById('role-coach').addEventListener('click', () => {
+      selectedRole = 'coach';
+      document.getElementById('role-coach').classList.add('active');
+      document.getElementById('role-athlete').classList.remove('active');
+    });
 
     tabLogin.addEventListener('click',  () => setMode('login'));
     tabSignup.addEventListener('click', () => setMode('signup'));
@@ -264,6 +329,12 @@
     }
     makeEyeToggle('toggle-pw',      pwInput);
     makeEyeToggle('toggle-confirm', confirmInput);
+
+    // ── Mode invité ──
+    document.getElementById('btn-guest').addEventListener('click', () => {
+      localStorage.setItem('imaz_guest', 'true');
+      window.location.href = 'index.html';
+    });
 
     // ── Submit ──
     btnSubmit.addEventListener('click', async () => {
@@ -314,27 +385,34 @@
           return;
         }
       } else {
-        const { data: signupData, error } = await _supabase.auth.signUp({ email, password });
+        // Passe pseudo + rôle en métadonnées → le trigger DB crée le profil automatiquement
+        const { data: signupData, error } = await _supabase.auth.signUp({
+          email, password,
+          options: { data: { username, name: username, role: selectedRole } }
+        });
         if (error) {
           errEl.textContent = error.message;
           btnSubmit.disabled = false;
           btnSubmit.textContent = "S'inscrire";
           return;
         }
-        // Enregistre le pseudo dès l'inscription
         if (signupData.user) {
+          // Upsert en fallback (si la session est dispo, ex: sans confirmation email)
           const { error: profileError } = await _supabase.from('profiles').upsert(
-            { user_id: signupData.user.id, username, name: username, photo: '', updated_at: new Date().toISOString() },
+            { user_id: signupData.user.id, username, name: username, photo: '', role: selectedRole, updated_at: new Date().toISOString() },
             { onConflict: 'user_id' }
           );
-          if (profileError && (profileError.code === '23505' || profileError.message?.includes('unique'))) {
-            errEl.textContent = 'Ce pseudo est déjà pris. Choisis-en un autre.';
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = "S'inscrire";
-            return;
+          if (profileError) {
+            if (profileError.code === '23505' || profileError.message?.includes('unique')) {
+              errEl.textContent = 'Ce pseudo est déjà pris. Choisis-en un autre.';
+              btnSubmit.disabled = false;
+              btnSubmit.textContent = "S'inscrire";
+              return;
+            }
           }
           localStorage.setItem('imaz_profil_username', username);
           localStorage.setItem('imaz_profil_name',     username);
+          localStorage.setItem('imaz_profil_role',     selectedRole);
         }
       }
 
