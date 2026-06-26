@@ -6,7 +6,6 @@
 // Returns the current user, or redirects to login.html.
 // Returns null (without redirect) for guest sessions.
 async function checkAuth() {
-  if (localStorage.getItem('imaz_guest') === 'true') return null;
   const { data: { session } } = await _supabase.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
@@ -190,9 +189,7 @@ async function refuseCoachingRequest(requestId) {
 
 // ── LOGOUT ────────────────────────────────────────────────
 async function logout() {
-  const isGuest = localStorage.getItem('imaz_guest') === 'true';
-  localStorage.removeItem('imaz_guest');
-  if (!isGuest) await _supabase.auth.signOut();
+  await _supabase.auth.signOut();
   localStorage.removeItem('imaz_sessions');
   localStorage.removeItem('imaz_settings');
   localStorage.removeItem('imaz_profil_name');

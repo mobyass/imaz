@@ -250,8 +250,6 @@
       <div class="login-error" id="login-error"></div>
       <button class="btn-primary login-submit" id="btn-submit">Se connecter</button>
 
-      <div class="login-divider">ou</div>
-      <button class="btn-guest" id="btn-guest">Continuer en invité</button>
 
     </div>
   </div>
@@ -330,11 +328,6 @@
     makeEyeToggle('toggle-pw',      pwInput);
     makeEyeToggle('toggle-confirm', confirmInput);
 
-    // ── Mode invité ──
-    document.getElementById('btn-guest').addEventListener('click', () => {
-      localStorage.setItem('imaz_guest', 'true');
-      window.location.href = 'index.html';
-    });
 
     // ── Submit ──
     btnSubmit.addEventListener('click', async () => {

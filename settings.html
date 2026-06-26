@@ -300,7 +300,15 @@
       localStorage.setItem('imaz_profil_name',     name);
       localStorage.setItem('imaz_profil_username', username);
 
-      syncProfileToSupabase({ name, photo, username });
+      const { error: syncErr } = await _supabase.from('profiles').upsert(
+        { user_id: user.id, name, username, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+
+      if (syncErr) {
+        showProfilMsg('Erreur BD : ' + syncErr.message, 'error');
+        return;
+      }
 
       refName     = name;
       refUsername = username;
