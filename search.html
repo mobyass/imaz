@@ -311,9 +311,28 @@
             e.stopPropagation();
             btn.disabled = true;
             btn.innerHTML = '…';
+
+            // Limite de 5 connexions pour les gratuits
+            const isPro = (localStorage.getItem('imaz_plan') || 'free') === 'pro';
+            if (!isPro) {
+              const { data: { session: s } } = await _supabase.auth.getSession();
+              const { count } = await _supabase
+                .from('coaching_requests')
+                .select('*', { count: 'exact', head: true })
+                .eq('sender_id', s.user.id)
+                .eq('status', 'accepted');
+              if (count >= 5) {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="user-plus"></i>';
+                if (confirm('Limite de 5 connexions atteinte. Passer à Pro pour en avoir plus ?')) {
+                  window.location.href = 'pricing.html';
+                }
+                return;
+              }
+            }
+
             const { error: err } = await sendCoachingRequest(p.user_id);
             if (err) console.error('sendCoachingRequest error:', err);
-            // 23505 = duplicate key (demande déjà envoyée) → traiter comme succès
             if (err && err.code !== '23505') {
               btn.textContent = '!';
               btn.title = err.message || 'Erreur';

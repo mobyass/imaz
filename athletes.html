@@ -56,6 +56,23 @@
     .prat-name { font-size: 14px; font-weight: 600; }
     .prat-username { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
+    .prat-actions {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 12px 70px;
+      border-top: none;
+    }
+    .prat-action-btn {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: none;
+      border-radius: 8px;
+      padding: 5px 12px;
+      cursor: pointer;
+    }
+
     .prat-empty {
       display: flex;
       flex-direction: column;
@@ -176,6 +193,33 @@
         row.appendChild(info);
         row.appendChild(arrow);
         card.appendChild(row);
+
+        // Boutons d'action sous chaque athlète
+        const actions = document.createElement('div');
+        actions.className = 'prat-actions';
+
+        const btnActivites = document.createElement('button');
+        btnActivites.className = 'prat-action-btn';
+        btnActivites.textContent = 'Activités';
+        btnActivites.onclick = (e) => {
+          e.stopPropagation();
+          const name = encodeURIComponent(p.name || p.username || '');
+          window.location.href = `athlete-profile.html?id=${p.user_id}&name=${name}`;
+        };
+
+        const btnAddSession = document.createElement('button');
+        btnAddSession.className = 'prat-action-btn';
+        btnAddSession.textContent = '+ Séance';
+        btnAddSession.onclick = (e) => {
+          e.stopPropagation();
+          const name     = encodeURIComponent(p.name || p.username || '');
+          const username = encodeURIComponent(p.username || '');
+          window.location.href = `share-session.html?recipient_id=${p.user_id}&recipient_name=${name}&recipient_username=${username}`;
+        };
+
+        actions.appendChild(btnActivites);
+        actions.appendChild(btnAddSession);
+        card.appendChild(actions);
       });
 
       listEl.appendChild(card);

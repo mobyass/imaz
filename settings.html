@@ -332,11 +332,6 @@
       btn.addEventListener('click', async () => {
         const newRole = btn.dataset.value;
         const plan = localStorage.getItem('imaz_plan') || 'free';
-        if (newRole === 'coach' && plan !== 'pro') {
-          window.location.href = 'pricing.html';
-          return;
-        }
-        if (newRole === 'athlete' && plan === 'pro') return;
         roleToggle.querySelectorAll('.toggle-opt').forEach(b =>
           b.classList.toggle('active', b === btn));
         localStorage.setItem('imaz_profil_role', newRole);

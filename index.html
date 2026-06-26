@@ -228,9 +228,7 @@
   <script>
     const _role = localStorage.getItem('imaz_profil_role') || 'athlete';
     const _plan = localStorage.getItem('imaz_plan') || 'free';
-    if (_role === 'coach') {
-      document.getElementById('nav-partager').style.display = '';
-    }
+    document.getElementById('nav-partager').style.display = '';
     if (_role !== 'coach' && _plan !== 'pro') {
       document.getElementById('coach-banner').style.display = 'flex';
     }

@@ -637,6 +637,28 @@
       document.getElementById('confirm-ol-ok').disabled = true;
       document.getElementById('confirm-ol-ok').textContent = '…';
 
+      // Limite de 5 partages pour les athlètes
+      const isPro = (localStorage.getItem('imaz_plan') || 'free') === 'pro';
+      const isCoach = (localStorage.getItem('imaz_profil_role') || 'athlete') === 'coach';
+      if (!isPro && !isCoach) {
+        const { data: { session: authSession } } = await _supabase.auth.getSession();
+        const { count } = await _supabase
+          .from('session_invitations')
+          .select('*', { count: 'exact', head: true })
+          .eq('sender_id', authSession.user.id);
+        if (count >= 5) {
+          confirmOlOverlay.classList.remove('open');
+          const errEl = document.getElementById('modal-save-error');
+          errEl.textContent = 'Limite de 5 partages atteinte. Passe en Pro pour partager sans limite.';
+          errEl.hidden = false;
+          document.getElementById('confirm-ol-ok').disabled = false;
+          document.getElementById('confirm-ol-ok').innerHTML = '<i data-lucide="send"></i> Envoyer';
+          lucide.createIcons();
+          setTimeout(() => window.location.href = 'pricing.html', 2500);
+          return;
+        }
+      }
+
       const { error } = await sendInvitation({
         recipientId: selectedUser.id,
         dateKey:     selectedDateKey,
@@ -658,12 +680,28 @@
       showSuccess();
     });
 
+    // ── PRÉ-SÉLECTION depuis athletes.html ────────────────
+    const _params = new URLSearchParams(location.search);
+    const _recipientId       = _params.get('recipient_id');
+    const _recipientName     = decodeURIComponent(_params.get('recipient_name') || '');
+    const _recipientUsername = decodeURIComponent(_params.get('recipient_username') || '');
+    if (_recipientId) {
+      selectedUser = { id: _recipientId, name: _recipientName, username: _recipientUsername };
+    }
+
     // ── SHARE BUTTON ───────────────────────────────────────
     document.getElementById('btn-share').addEventListener('click', async () => {
       const exercises = collectExercises();
       if (!exercises) return;
 
       pendingExercises = exercises;
+
+      // Si athlète pré-sélectionné, ouvrir directement la confirmation
+      if (selectedUser) {
+        openConfirmOverlay();
+        return;
+      }
+
       searchOlInput.value = '';
       searchOlResults.innerHTML = '<p class="search-ol-empty">Chargement…</p>';
       searchOlOverlay.classList.add('open');

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Séances des athlètes – Imaz</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/form.css">
+  <link rel="stylesheet" href="css/home.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 40px; }
+
+    .athlete-block { padding: 0 16px 8px; }
+
+    .athlete-block-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 0 10px;
+    }
+
+    .athlete-block-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .athlete-block-name {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .athlete-block-username {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .athlete-block-link {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    .athlete-sessions-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .athlete-session-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .athlete-session-row:hover { border-color: var(--accent); }
+
+    .athlete-session-date {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .athlete-session-exo {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .athlete-session-count {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border-radius: 20px;
+      padding: 3px 10px;
+      flex-shrink: 0;
+    }
+
+    .athlete-empty {
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 8px 0 4px;
+    }
+
+    .page-empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Séances des athlètes</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <div id="page-content">
+    <p class="page-empty">Chargement…</p>
+  </div>
+
+  <!-- MODAL VUE SÉANCE -->
+  <div class="modal-overlay" id="session-view-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="session-view-athlete"></h3>
+          <span class="modal-date-label" id="session-view-date"></span>
+        </div>
+        <button class="modal-close" id="session-view-close"><i data-lucide="x"></i></button>
+      </div>
+      <div id="session-view-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    lucide.createIcons();
+
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    }
+
+    function formatDayLabel(key) {
+      const d = parseKey(key);
+      return `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+    }
+
+    function openSessionModal(data, key, athleteName) {
+      const settings = getSettings();
+      document.getElementById('session-view-athlete').textContent = athleteName;
+      document.getElementById('session-view-date').textContent = formatDayLabel(key);
+      const content   = document.getElementById('session-view-content');
+      const exercises = data.exercises || [];
+      if (exercises.length === 0) {
+        content.innerHTML = '<p class="empty-state">Aucun exercice enregistré</p>';
+      } else {
+        content.innerHTML = exercises.map(e => {
+          const sets = normalizeSets(e);
+          return `
+            <div class="seance-log-exo">
+              <div class="log-exo-name">${e.name}</div>
+              <div class="log-table log-table--readonly">
+                <div class="log-table-head"><span></span><span>Rép</span><span>${settings.weightUnit}</span></div>
+                ${sets.map((s, si) => {
+                  const done  = e.done && e.done[si] ? e.done[si] : {};
+                  const repsV = done.reps   !== undefined ? done.reps   : (s.reps   ?? '');
+                  const wgtV  = done.weight !== undefined ? done.weight : (s.weight ?? '');
+                  const isVal = done.validated === true;
+                  return `<div class="log-table-row ${isVal ? 'validated' : ''}">
+                    <span class="log-set-num">S${si + 1}</span>
+                    <span class="log-val-text">${repsV !== '' ? repsV : '—'}</span>
+                    <span class="log-val-text">${wgtV  !== '' ? wgtV  : '—'}</span>
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>`;
+        }).join('');
+      }
+      document.getElementById('session-view-overlay').classList.add('open');
+      lucide.createIcons();
+    }
+
+    document.getElementById('session-view-close').addEventListener('click', () =>
+      document.getElementById('session-view-overlay').classList.remove('open'));
+    document.getElementById('session-view-overlay').addEventListener('click', e => {
+      if (e.target.id === 'session-view-overlay')
+        document.getElementById('session-view-overlay').classList.remove('open');
+    });
+
+    checkAuth().then(async () => {
+      const content = document.getElementById('page-content');
+      const { data: { session } } = await _supabase.auth.getSession();
+
+      // Récupère les athlètes acceptés
+      const { data: accepted } = await _supabase
+        .from('coaching_requests')
+        .select('recipient_id')
+        .eq('sender_id', session.user.id)
+        .eq('status', 'accepted');
+
+      if (!accepted || accepted.length === 0) {
+        content.innerHTML = `<p class="page-empty">Aucun athlète pour l'instant.<br>Ajoute des athlètes depuis la liste.</p>`;
+        return;
+      }
+
+      const ids = accepted.map(r => r.recipient_id);
+
+      const [{ data: profiles }, { data: allSessions }] = await Promise.all([
+        _supabase.from('profiles').select('user_id, name, username, photo').in('user_id', ids),
+        _supabase.from('sessions').select('user_id, date_key, data')
+          .in('user_id', ids)
+          .order('date_key', { ascending: false }),
+      ]);
+
+      if (!profiles || profiles.length === 0) {
+        content.innerHTML = `<p class="page-empty">Impossible de charger les profils.</p>`;
+        return;
+      }
+
+      content.innerHTML = '';
+
+      profiles.forEach(p => {
+        const athleteName = p.name || p.username || '—';
+        const sessions = (allSessions || [])
+          .filter(s => s.user_id === p.user_id && s.data?.completed === true)
+          .slice(0, 5);
+
+        const block = document.createElement('div');
+        block.className = 'athlete-block';
+
+        // Header athlète
+        const header = document.createElement('div');
+        header.className = 'athlete-block-header';
+        const avatar = document.createElement('div');
+        avatar.className = 'athlete-block-avatar';
+        if (p.photo) {
+          avatar.style.backgroundImage = `url(${p.photo})`;
+          avatar.textContent = '';
+        } else {
+          avatar.textContent = getInitials(athleteName);
+        }
+        const nameWrap = document.createElement('div');
+        nameWrap.innerHTML = `
+          <div class="athlete-block-name">${athleteName}</div>
+          <div class="athlete-block-username">@${p.username || ''}</div>`;
+        const viewAll = document.createElement('span');
+        viewAll.className = 'athlete-block-link';
+        viewAll.textContent = 'Tout voir';
+        viewAll.onclick = () => {
+          window.location.href = `athlete-profile.html?id=${p.user_id}&name=${encodeURIComponent(athleteName)}`;
+        };
+        header.appendChild(avatar);
+        header.appendChild(nameWrap);
+        header.appendChild(viewAll);
+        block.appendChild(header);
+
+        // Séances
+        const list = document.createElement('div');
+        list.className = 'athlete-sessions-list';
+        if (sessions.length === 0) {
+          list.innerHTML = `<p class="athlete-empty">Aucune séance complétée</p>`;
+        } else {
+          sessions.forEach(s => {
+            const row = document.createElement('div');
+            row.className = 'athlete-session-row';
+            const exos = (s.data.exercises || []).map(e => e.name).slice(0, 2).join(', ');
+            const more = (s.data.exercises || []).length > 2 ? ` +${(s.data.exercises || []).length - 2}` : '';
+            row.innerHTML = `
+              <div>
+                <div class="athlete-session-date">${formatDayLabel(s.date_key)}</div>
+                <div class="athlete-session-exo">${exos}${more}</div>
+              </div>
+              <span class="athlete-session-count">${(s.data.exercises || []).length} exo</span>`;
+            row.addEventListener('click', () => openSessionModal(s.data, s.date_key, athleteName));
+            list.appendChild(row);
+          });
+        }
+        block.appendChild(list);
+        content.appendChild(block);
+      });
+
+      lucide.createIcons();
+    });
+  </script>
+
+</body>
+</html>
