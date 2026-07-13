@@ -347,6 +347,11 @@ function addEmom(data = {}) {
       <button class="exo-remove-btn emom-exo-remove"><i data-lucide="x"></i></button>
     `;
     row.querySelector('.emom-exo-remove').addEventListener('click', () => row.remove());
+    row.querySelector('.emom-exo-name').addEventListener('input', function() {
+      this.classList.remove('input-error');
+      if (!document.querySelector('.emom-exo-name.input-error') && !document.querySelector('.exo-name-input.input-error'))
+        document.getElementById('modal-save-error').hidden = true;
+    });
     exoList.appendChild(row);
     lucide.createIcons();
   }
@@ -422,6 +427,22 @@ function saveModal() {
 
     if (name && sets.length > 0) exercises.push({ name, bodyweight: false, sets });
   });
+
+  document.querySelectorAll('.emom-exo-name').forEach(input => {
+    if (!input.value.trim()) {
+      input.classList.add('input-error');
+      hasError = true;
+    } else {
+      input.classList.remove('input-error');
+    }
+  });
+
+  if (hasError) {
+    const err = document.getElementById('modal-save-error');
+    err.textContent = 'Certains exercices n\'ont pas de nom.';
+    err.hidden = false;
+    return;
+  }
 
   const emoms = [];
   document.querySelectorAll('.emom-block').forEach(block => {
