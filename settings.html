@@ -135,6 +135,19 @@
       </div>
     </div>
 
+    <!-- ── SUGGESTIONS ── -->
+    <div class="settings-section" style="margin-top:8px">
+      <h3 class="settings-section-title">Suggestions</h3>
+      <div style="padding:0 16px 16px">
+        <textarea id="feedback-text" placeholder="Une idée, un bug, une amélioration…" rows="4"
+          style="width:100%;box-sizing:border-box;background:var(--surface-2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:14px;color:var(--text);resize:vertical;font-family:inherit;outline:none;display:block;transition:border-color 0.15s"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--border)'"></textarea>
+        <p id="feedback-msg" style="display:none;font-size:12px;margin:8px 0 0"></p>
+        <button id="btn-feedback-send" style="margin-top:12px;background:var(--accent);border:none;border-radius:var(--radius-sm);padding:12px 24px;font-size:14px;font-weight:700;color:white;cursor:pointer">Envoyer</button>
+      </div>
+    </div>
+
     <!-- ── COMPTE ── -->
     <div class="settings-section" style="margin-top:8px">
       <div class="settings-row">
@@ -280,6 +293,35 @@
       loadSettingsProfile();
       showProfilMsg('Profil enregistré !', 'success');
       setTimeout(() => { saveRow.style.display = 'none'; }, 3000);
+    });
+
+    // ── FEEDBACK ──
+    document.getElementById('btn-feedback-send').addEventListener('click', async () => {
+      const text = document.getElementById('feedback-text').value.trim();
+      const msg  = document.getElementById('feedback-msg');
+      if (!text) {
+        msg.textContent = 'Écris ton message avant d\'envoyer.';
+        msg.style.color = '#e53e3e';
+        msg.style.display = '';
+        return;
+      }
+      const { data: { user } } = await _supabase.auth.getUser();
+      const username = localStorage.getItem('imaz_profil_username') || '';
+      const { error } = await _supabase.from('feedback').insert({
+        user_id: user?.id,
+        username,
+        message: text
+      });
+      if (error) {
+        msg.textContent = 'Erreur lors de l\'envoi, réessaie.';
+        msg.style.color = '#e53e3e';
+      } else {
+        document.getElementById('feedback-text').value = '';
+        msg.textContent = 'Merci pour ton retour !';
+        msg.style.color = '#48c78e';
+      }
+      msg.style.display = '';
+      setTimeout(() => { msg.style.display = 'none'; }, 3000);
     });
 
     function showProfilMsg(msg, type) {
