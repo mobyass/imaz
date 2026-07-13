@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Imaz</title>
+  <title>ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/home.css">
   <link rel="stylesheet" href="css/form.css">
@@ -12,7 +12,7 @@
 <body>
 
   <header>
-    <div class="logo">Im<span>az</span></div>
+    <div class="logo">ARMAZ</div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="icon-btn" onclick="window.location.href='search.html'">
         <i data-lucide="search"></i>
@@ -59,16 +59,6 @@
       </div>
     </section>
 
-    <!-- Bannière coach -->
-    <div id="coach-banner" style="display:none;margin:0 16px 16px;background:linear-gradient(135deg,var(--surface) 0%,rgba(79,142,247,0.10) 100%);border:1px solid var(--accent);border-radius:var(--radius);padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-      <div>
-        <div style="font-size:14px;font-weight:700">Passe en mode Coach</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Partage des séances, suis tes athlètes</div>
-      </div>
-      <button onclick="window.location.href='pricing.html'" style="background:var(--accent);color:white;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
-        Devenir Coach
-      </button>
-    </div>
 
   </div>
 
@@ -139,9 +129,14 @@
 
       <div id="modal-exercises"></div>
 
-      <button class="btn-add-exo" id="btn-add-exo">
-        <i data-lucide="plus"></i> Ajouter un exercice
-      </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-add-exo" id="btn-add-exo" style="flex:1">
+          <i data-lucide="plus"></i> Exercice
+        </button>
+        <button class="btn-add-exo" id="btn-add-emom" style="flex:1;background:var(--accent-dim);color:var(--accent);border-color:var(--accent)">
+          <i data-lucide="timer"></i> EMOM
+        </button>
+      </div>
 
       <p class="modal-error" id="modal-save-error" hidden></p>
 
@@ -226,40 +221,13 @@
   <script src="js/app.js"></script>
   <script src="js/timer.js"></script>
   <script>
-    const _role = localStorage.getItem('imaz_profil_role') || 'athlete';
-    const _plan = localStorage.getItem('imaz_plan') || 'free';
     document.getElementById('nav-partager').style.display = '';
-    if (_role !== 'coach' && _plan !== 'pro') {
-      document.getElementById('coach-banner').style.display = 'flex';
-    }
 
     function navGuard(url) {
       window.location.href = url;
     }
 
     checkAuth().then(async () => {
-      // Retour après paiement Stripe
-      if (new URLSearchParams(location.search).get('plan') === 'success') {
-        localStorage.setItem('imaz_plan', 'pro');
-        localStorage.setItem('imaz_profil_role', 'coach');
-        const { data: { user: u } } = await _supabase.auth.getUser();
-        if (u) {
-          await _supabase.from('profiles')
-            .update({ plan: 'pro', role: 'coach' })
-            .eq('user_id', u.id);
-        }
-        history.replaceState(null, '', 'index.html');
-        const toast = document.createElement('div');
-        toast.textContent = '🎉 Bienvenue sur Imaz Pro !';
-        Object.assign(toast.style, {
-          position:'fixed', bottom:'90px', left:'50%', transform:'translateX(-50%)',
-          background:'var(--accent)', color:'white', padding:'10px 20px',
-          borderRadius:'20px', fontWeight:'700', fontSize:'14px', zIndex:'9999',
-          boxShadow:'0 4px 20px rgba(79,142,247,0.4)'
-        });
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-      }
       const notifs      = JSON.parse(localStorage.getItem('imaz_notifications') || '[]');
       const localCount  = notifs.filter(n => !n.read).length;
       const [invites, coachReqs] = await Promise.all([
@@ -273,6 +241,145 @@
         badge.style.display = '';
       }
     });
+  </script>
+
+  <script>
+  // ── CHRONO EMOM ───────────────────────────────────────────
+  (function() {
+    let elapsed     = 0;
+    let ticker      = null;
+    let running     = false;
+    let emomMode    = false;
+    let emomRounds  = 10;
+    let emomInterv  = 30;   // secondes par tour
+    let lastRound   = -1;
+    let state       = 'idle';
+
+    const card          = document.getElementById('chrono-card');
+    const timeEl        = document.getElementById('chrono-time');
+    const emomInfo      = document.getElementById('chrono-emom-info');
+    const curMinEl      = document.getElementById('chrono-current-min');
+    const totMinEl      = document.getElementById('chrono-total-min');
+    const startBtn      = document.getElementById('chrono-start-btn');
+    const resetBtn      = document.getElementById('chrono-reset-btn');
+    const emomToggle    = document.getElementById('chrono-emom-toggle');
+    const emomOptions   = document.getElementById('chrono-emom-options');
+    const roundsVal     = document.getElementById('chrono-rounds-val');
+    const intVal        = document.getElementById('chrono-int-val');
+    const settingsBtn   = document.getElementById('chrono-settings-btn');
+    const settingsPanel = document.getElementById('chrono-settings-panel');
+    const soundToggle   = document.getElementById('chrono-sound-toggle');
+    const modeTag       = document.getElementById('chrono-mode-tag');
+    let soundOn         = true;
+
+    function fmt(s) {
+      return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    }
+
+    function beep(freq = 880, dur = 0.3) {
+      if (!soundOn) return;
+      try {
+        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        osc.start(); osc.stop(ctx.currentTime + dur);
+      } catch(e) {}
+    }
+
+    function doubleBip() {
+      beep(880, 0.2);
+      setTimeout(() => beep(660, 0.4), 250);
+    }
+
+    function tick() {
+      elapsed++;
+      timeEl.textContent = fmt(elapsed);
+      if (emomMode) {
+        const curRound = Math.floor(elapsed / emomInterv);
+        curMinEl.textContent = curRound;
+        if (curRound !== lastRound) {
+          lastRound = curRound;
+          if (curRound > 0 && curRound < emomRounds) beep();
+        }
+        if (elapsed >= emomRounds * emomInterv) { doubleBip(); stop(); }
+      }
+    }
+
+    function setIdle() {
+      state = 'idle'; running = false;
+      clearInterval(ticker);
+      card.classList.remove('running');
+      resetBtn.style.display = 'none';
+      startBtn.innerHTML = '<i data-lucide="play"></i> Démarrer';
+      lucide.createIcons();
+    }
+
+    function start() {
+      if (emomMode) beep();
+      state = 'running'; running = true;
+      ticker = setInterval(tick, 1000);
+      card.classList.add('running');
+      resetBtn.style.display = 'none';
+      startBtn.innerHTML = '<i data-lucide="square"></i> Arrêter';
+      lucide.createIcons();
+    }
+
+    function stop() {
+      state = 'stopped'; running = false;
+      clearInterval(ticker);
+      card.classList.remove('running');
+      resetBtn.style.display = '';
+      startBtn.innerHTML = '<i data-lucide="play"></i> Démarrer';
+      lucide.createIcons();
+    }
+
+    function reset() {
+      elapsed = 0; lastRound = -1;
+      timeEl.textContent   = '00:00';
+      curMinEl.textContent = '0';
+      setIdle();
+    }
+
+    startBtn.addEventListener('click', () => state === 'running' ? stop() : start());
+    resetBtn.addEventListener('click', reset);
+
+    // Panneau réglages
+    settingsBtn.addEventListener('click', () => {
+      const open = settingsPanel.style.display === 'none';
+      settingsPanel.style.display = open ? '' : 'none';
+      settingsBtn.classList.toggle('active', open);
+    });
+
+    soundToggle.addEventListener('change', () => { soundOn = soundToggle.checked; });
+
+    emomToggle.addEventListener('change', () => {
+      emomMode = emomToggle.checked;
+      emomOptions.style.display = emomMode ? 'flex' : 'none';
+      emomInfo.style.display    = emomMode ? ''     : 'none';
+      modeTag.textContent       = emomMode ? 'EMOM' : 'Chrono';
+      totMinEl.textContent      = emomRounds;
+      reset();
+    });
+
+    // Intervalle personnalisé
+    document.getElementById('chrono-int-minus').addEventListener('click', () => {
+      if (emomInterv > 5) { emomInterv -= 5; intVal.textContent = emomInterv; reset(); }
+    });
+    document.getElementById('chrono-int-plus').addEventListener('click', () => {
+      if (emomInterv < 300) { emomInterv += 5; intVal.textContent = emomInterv; reset(); }
+    });
+
+    document.getElementById('chrono-rounds-minus').addEventListener('click', () => {
+      if (emomRounds > 1) { emomRounds--; roundsVal.textContent = emomRounds; totMinEl.textContent = emomRounds; reset(); }
+    });
+    document.getElementById('chrono-rounds-plus').addEventListener('click', () => {
+      if (emomRounds < 60) { emomRounds++; roundsVal.textContent = emomRounds; totMinEl.textContent = emomRounds; reset(); }
+    });
+  })();
   </script>
 
 </body>

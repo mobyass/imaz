@@ -189,16 +189,43 @@ function renderSeancesDuJour() {
     const restHeaderCell = settings.restEnabled ? '<span>Récup</span>' : '';
     const logTableClass  = settings.restEnabled ? 'log-table' : 'log-table log-table--norest';
 
+    const emomsHTML = (session.emoms || []).map((em, emi) => {
+      const isDone = em.done === true;
+      return `
+        <div class="log-emom-block ${isDone ? 'done' : ''}" data-emi="${emi}">
+          <div class="log-emom-header">
+            <span class="log-emom-label"><i data-lucide="timer" style="width:14px;height:14px"></i> EMOM</span>
+            <span class="log-emom-meta">${em.interval}s × ${em.rounds} tours</span>
+            ${isDone ? '<span class="log-emom-done-badge"><i data-lucide="check-circle"></i> Terminé</span>' : ''}
+          </div>
+          <div class="log-emom-exos">
+            ${(em.exercises || []).map(ex => `<div class="log-emom-exo">• ${ex.name}${ex.reps ? ` × ${ex.reps}` : ''}</div>`).join('')}
+          </div>
+          ${!isDone ? `
+          <div class="log-emom-runner" style="display:none">
+            <div class="log-emom-time">00:00</div>
+            <div class="log-emom-round">Tour 0 / ${em.rounds}</div>
+          </div>
+          <div class="log-emom-actions">
+            <button class="log-emom-clear-btn chrono-btn chrono-btn-reset" style="display:none"><i data-lucide="rotate-ccw"></i> Effacer</button>
+            <button class="log-emom-main-btn chrono-btn chrono-btn-main"><i data-lucide="play"></i> Démarrer</button>
+          </div>` : ''}
+        </div>
+      `;
+    }).join('');
+
     container.innerHTML = `
       <div class="seance-log">
         ${session.exercises.map((e, ei) => {
           const sets = normalizeSets(e);
           return `
             <div class="seance-log-exo" data-exo="${ei}">
-              <div class="log-exo-name">${e.name}</div>
+              <div class="log-exo-header">
+                <div class="log-exo-name">${e.name}</div>
+              </div>
               <div class="${logTableClass}">
                 <div class="log-table-head">
-                  <span></span><span>Rép</span><span>${wUnit}</span>${restHeaderCell}<span></span>
+                  <span>Série</span><span>Rép</span><span>${wUnit}</span>${restHeaderCell}<span></span>
                 </div>
                 ${sets.map((s, si) => {
                   const done  = e.done && e.done[si] ? e.done[si] : {};
@@ -223,6 +250,7 @@ function renderSeancesDuJour() {
           `;
         }).join('')}
       </div>
+        ${emomsHTML}
       <div class="seance-today-actions">
         <button class="btn-secondary" id="btn-edit-today">
           <i data-lucide="pencil"></i> Modifier
@@ -263,6 +291,114 @@ function renderSeancesDuJour() {
 
     container.querySelectorAll('.log-input').forEach(inp => {
       inp.addEventListener('change', () => saveLogData(todayKey));
+    });
+
+    // ── EMOM inline runners ──────────────────────────────
+    container.querySelectorAll('.log-emom-block').forEach(block => {
+      const emi     = parseInt(block.dataset.emi);
+      const em      = (session.emoms || [])[emi];
+      if (!em || em.done) return;
+
+      const mainBtn  = block.querySelector('.log-emom-main-btn');
+      const clearBtn = block.querySelector('.log-emom-clear-btn');
+      const runner   = block.querySelector('.log-emom-runner');
+      const timeEl   = block.querySelector('.log-emom-time');
+      const roundEl  = block.querySelector('.log-emom-round');
+
+      let elapsed = 0, ticker = null, lastRound = -1;
+      let state = 'idle'; // idle | running | stopped | completed
+
+      function fmt(s) {
+        return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+      }
+      function beep(freq=880, dur=0.3) {
+        try {
+          const ctx=new(window.AudioContext||window.webkitAudioContext)();
+          const osc=ctx.createOscillator(), g=ctx.createGain();
+          osc.connect(g); g.connect(ctx.destination);
+          osc.frequency.value=freq;
+          g.gain.setValueAtTime(0.4,ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+          osc.start(); osc.stop(ctx.currentTime+dur);
+        } catch(e){}
+      }
+
+      function setIdle() {
+        state = 'idle';
+        clearBtn.style.display = 'none';
+        mainBtn.innerHTML = '<i data-lucide="play"></i> Démarrer';
+        mainBtn.classList.remove('paused');
+        lucide.createIcons();
+      }
+
+      function startEmom() {
+        state = 'running';
+        runner.style.display = '';
+        clearBtn.style.display = 'none';
+        mainBtn.innerHTML = '<i data-lucide="square"></i> Arrêter';
+        lucide.createIcons();
+        beep();
+        ticker = setInterval(() => {
+          elapsed++;
+          timeEl.textContent = fmt(elapsed);
+          const cur = Math.floor(elapsed / em.interval);
+          roundEl.textContent = `Tour ${cur} / ${em.rounds}`;
+          if (cur !== lastRound) {
+            lastRound = cur;
+            if (cur > 0 && cur < em.rounds) beep();
+          }
+          if (elapsed >= em.rounds * em.interval) {
+            clearInterval(ticker);
+            state = 'completed';
+            beep(880,0.2); setTimeout(()=>beep(660,0.4),250);
+            clearBtn.style.display = '';
+            mainBtn.innerHTML = '<i data-lucide="check"></i> Valider';
+            mainBtn.classList.add('paused');
+            lucide.createIcons();
+          }
+        }, 1000);
+      }
+
+      function stopEmom() {
+        state = 'stopped';
+        clearInterval(ticker);
+        clearBtn.style.display = '';
+        mainBtn.innerHTML = '<i data-lucide="play"></i> Démarrer';
+        mainBtn.classList.remove('paused');
+        lucide.createIcons();
+      }
+
+      function validateEmom() {
+        clearInterval(ticker);
+        const all = getSessions();
+        if (all[todayKey]?.emoms?.[emi]) {
+          all[todayKey].emoms[emi].done = true;
+          localStorage.setItem('imaz_sessions', JSON.stringify(all));
+          if (typeof syncSessionToSupabase === 'function')
+            syncSessionToSupabase(todayKey, all[todayKey]);
+        }
+        renderSeancesDuJour();
+        lucide.createIcons();
+      }
+
+      mainBtn.addEventListener('click', () => {
+        if (state === 'running')   { stopEmom(); return; }
+        if (state === 'completed') { validateEmom(); return; }
+        // idle ou stopped → (re)démarrer
+        elapsed = 0; lastRound = -1;
+        timeEl.textContent  = '00:00';
+        roundEl.textContent = `Tour 0 / ${em.rounds}`;
+        startEmom();
+      });
+
+      clearBtn.addEventListener('click', () => {
+        clearInterval(ticker);
+        elapsed = 0; lastRound = -1;
+        timeEl.textContent  = '00:00';
+        roundEl.textContent = `Tour 0 / ${em.rounds}`;
+        runner.style.display = 'none';
+        setIdle();
+      });
     });
 
     document.getElementById('btn-edit-today')

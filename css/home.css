@@ -179,7 +179,7 @@
 /* ── SCHEDULE BUTTON ── */
 .btn-schedule {
   background: var(--accent-dim);
-  border: 1px solid rgba(79, 142, 247, 0.35);
+  border: 1px solid rgba(4, 31, 166, 0.35);
   border-radius: 20px;
   padding: 5px 12px;
   color: var(--accent);
@@ -192,7 +192,7 @@
   transition: background 0.15s;
 }
 
-.btn-schedule:hover { background: rgba(79, 142, 247, 0.25); }
+.btn-schedule:hover { background: rgba(4, 31, 166, 0.25); }
 .btn-schedule svg { width: 13px; height: 13px; }
 
 /* ── PAGE HOME: layout ── */
@@ -200,6 +200,34 @@
   overflow-y: auto;
   flex-direction: column;
 }
+
+/* ── EMOM LOG BLOCK ── */
+.log-emom-block {
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.log-emom-block.done { border-color: #48c78e; opacity: 0.75; }
+.log-emom-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.log-emom-label { font-size: 12px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+.log-emom-label svg { width: 14px; height: 14px; }
+.log-emom-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+.log-emom-done-badge { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: #48c78e; margin-left: auto; }
+.log-emom-done-badge svg { width: 14px; height: 14px; }
+.log-emom-exos { display: flex; flex-direction: column; gap: 4px; }
+.log-emom-exo { font-size: 13px; color: var(--text); font-weight: 600; }
+.log-emom-runner { background: var(--surface-2); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.log-emom-time { font-size: 36px; font-weight: 900; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.log-emom-round { font-size: 13px; font-weight: 600; color: var(--accent); }
+.log-emom-controls { display: flex; gap: 8px; width: 100%; margin-top: 4px; }
+.log-emom-actions { display: flex; gap: 8px; }
 
 /* ── SEANCE LOG ── */
 .seance-log {
@@ -215,10 +243,22 @@
   padding: 10px 10px 8px;
 }
 
+.log-exo-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
 .log-exo-name {
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.log-exo-target {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .log-table-head,
@@ -233,11 +273,15 @@
 
 .log-table-head span {
   text-align: center;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
+}
+
+.log-table-head span:first-child {
+  font-size: 9px;
 }
 
 .log-table-row { margin-bottom: 4px; }

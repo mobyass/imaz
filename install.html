@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Installer ARMAZ</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 40px; }
+
+    .install-hero {
+      background: var(--accent);
+      padding: 40px 24px 32px;
+      text-align: center;
+      color: white;
+    }
+
+    .install-hero-icon {
+      width: 72px;
+      height: 72px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .install-hero-icon svg { width: 36px; height: 36px; }
+
+    .install-hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .install-hero-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.5;
+    }
+
+    .install-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-top: 14px;
+    }
+
+    .install-intro {
+      padding: 24px 20px 0;
+    }
+
+    .install-intro p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Tabs */
+    .install-tabs {
+      display: flex;
+      gap: 10px;
+      padding: 20px 20px 0;
+    }
+
+    .install-tab {
+      flex: 1;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 10px;
+      background: var(--surface);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .install-tab.active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .install-tab-emoji { font-size: 22px; }
+    .install-tab-label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+    .install-tab.active .install-tab-label { color: var(--accent); }
+    .install-tab-browser { font-size: 10px; font-weight: 600; color: var(--text-muted); }
+
+    /* Content */
+    .install-content { display: none; padding: 20px; }
+    .install-content.active { display: block; }
+
+    .install-warning {
+      background: #FFF8E7;
+      border: 1px solid #F5C842;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .install-warning-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .install-warning-text { font-size: 12px; color: #7A5C00; line-height: 1.5; }
+
+    .install-steps { display: flex; flex-direction: column; gap: 0; }
+
+    .install-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .install-step:last-child { border-bottom: none; }
+
+    .install-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .install-step-body { flex: 1; }
+    .install-step-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .install-step-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+    .install-note {
+      margin: 20px 20px 0;
+      padding: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()">
+      <i data-lucide="arrow-left"></i>
+    </button>
+    <div class="header-title">Installer l'app</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <!-- Hero -->
+  <div class="install-hero">
+    <div class="install-hero-icon">
+      <i data-lucide="smartphone" style="color:white"></i>
+    </div>
+    <h1>ARMAZ sur ton téléphone</h1>
+    <p class="install-hero-sub">Ajoute ARMAZ à ton écran d'accueil.</p>
+    <div class="install-badge">Gratuit · Rapide · Immédiat</div>
+  </div>
+
+  <!-- Intro -->
+  <div class="install-intro">
+    <p>ARMAZ fonctionne déjà sur ton téléphone depuis le navigateur. Il suffit de l'épingler sur ton écran d'accueil — tu l'ouvriras comme n'importe quelle autre app.</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="install-tabs">
+    <button class="install-tab active" id="tab-ios" onclick="switchTab('ios')">
+      <span class="install-tab-label">iPhone / iPad</span>
+      <span class="install-tab-browser">Safari</span>
+    </button>
+    <button class="install-tab" id="tab-android" onclick="switchTab('android')">
+      <span class="install-tab-label">Android</span>
+      <span class="install-tab-browser">Chrome</span>
+    </button>
+  </div>
+
+  <!-- iOS -->
+  <div class="install-content active" id="content-ios">
+    <div class="install-warning">
+      <span class="install-warning-text">Utilise <strong>Safari</strong> pour installer ARMAZ sur iPhone.</span>
+    </div>
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Ouvre ARMAZ dans Safari</div>
+          <div class="install-step-desc">Si tu es dans une autre app, appuie sur « Ouvrir dans Safari ».</div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Appuie sur le bouton Partager ou les trois petits points</div>
+          <div class="install-step-desc">Selon ta version de Safari : appuie directement sur le bouton Partager, ou sur les trois petits points puis sur « Partager ».</div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">3</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Fais défiler le menu vers le bas</div>
+          <div class="install-step-desc">Cherche l'option « Sur l'écran d'accueil ».</div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">4</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Appuie sur « Sur l'écran d'accueil »</div>
+          <div class="install-step-desc">Le nom ARMAZ sera déjà rempli.</div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">5</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Appuie sur « Ajouter »</div>
+          <div class="install-step-desc">ARMAZ apparaît sur ton écran d'accueil comme une vraie app.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Android -->
+  <div class="install-content" id="content-android">
+    <div class="install-warning">
+      <span class="install-warning-text">Utilise <strong>Google Chrome</strong> pour installer ARMAZ sur Android.</span>
+    </div>
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Ouvre ARMAZ dans Chrome</div>
+          <div class="install-step-desc">Si tu es dans une autre app, copie le lien et colle-le dans Chrome.</div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Appuie sur ⋮ en haut à droite</div>
+          <div class="install-step-desc">Les 3 petits points en haut à droite ouvrent le menu de Chrome.</div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">3</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Appuie sur « Installer l'application »</div>
+          <div class="install-step-desc">Peut aussi s'appeler « Ajouter à l'écran d'accueil » selon ton téléphone.</div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">4</div>
+        <div class="install-step-body">
+          <div class="install-step-title">Confirme avec « Installer »</div>
+          <div class="install-step-desc">L'icône ARMAZ rejoint tes autres applications.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="install-note">
+    Tu peux aussi utiliser ARMAZ directement depuis ton navigateur, sans rien installer.
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+
+    function switchTab(tab) {
+      document.getElementById('tab-ios').classList.toggle('active', tab === 'ios');
+      document.getElementById('tab-android').classList.toggle('active', tab === 'android');
+      document.getElementById('content-ios').classList.toggle('active', tab === 'ios');
+      document.getElementById('content-android').classList.toggle('active', tab === 'android');
+    }
+
+    // Détecte la plateforme
+    if (/android/i.test(navigator.userAgent)) switchTab('android');
+  </script>
+
+</body>
+</html>

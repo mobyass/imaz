@@ -19,6 +19,10 @@ function openModal(dateKey) {
     addExercise();
   }
 
+  if (existing && existing.emoms) {
+    existing.emoms.forEach(e => addEmom(e));
+  }
+
   document.getElementById('modal-overlay').classList.add('open');
   lucide.createIcons();
 }
@@ -122,6 +126,7 @@ function addExercise(data = {}) {
   item.innerHTML = `
     <div class="exo-item-header">
       <div class="exo-name-wrap">
+        <label class="exo-name-label">Exercice</label>
         <input type="text" class="exo-name-input" placeholder="Nom de l'exercice" value="${data.name || ''}" autocomplete="off">
         <div class="exo-sugg-dropdown" style="display:none"></div>
       </div>
@@ -286,6 +291,86 @@ function renumberSets(list) {
   list.querySelectorAll('.set-num').forEach((el, i) => el.textContent = `S${i + 1}`);
 }
 
+// ── EMOM BLOCK ───────────────────────────────────────────
+function addEmom(data = {}) {
+  const container = document.getElementById('modal-exercises');
+  const interval  = data.interval || 60;
+  const rounds    = data.rounds   || 10;
+  const exos      = data.exercises || [{ name: '', reps: '' }];
+
+  const block = document.createElement('div');
+  block.className = 'emom-block';
+
+  block.innerHTML = `
+    <div class="emom-block-header">
+      <span class="emom-block-label"><i data-lucide="timer"></i> EMOM</span>
+      <button class="exo-remove-btn emom-remove-btn"><i data-lucide="trash-2"></i></button>
+    </div>
+    <div class="emom-exo-list"></div>
+    <div class="emom-block-settings">
+      <div class="emom-setting">
+        <span>Intervalle</span>
+        <div class="emom-counter">
+          <button class="emom-counter-btn emom-int-minus">−</button>
+          <span class="emom-counter-val emom-int-val">${interval}</span>
+          <span class="emom-counter-unit">sec</span>
+          <button class="emom-counter-btn emom-int-plus">+</button>
+        </div>
+      </div>
+      <div class="emom-setting">
+        <span>Tours</span>
+        <div class="emom-counter">
+          <button class="emom-counter-btn emom-rounds-minus">−</button>
+          <span class="emom-counter-val emom-rounds-val">${rounds}</span>
+          <button class="emom-counter-btn emom-rounds-plus">+</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const exoList = block.querySelector('.emom-exo-list');
+
+  function addEmomExo(name = '', reps = '') {
+    const row = document.createElement('div');
+    row.className = 'emom-exo-row';
+    row.innerHTML = `
+      <div class="emom-exo-fields">
+        <div class="emom-exo-field">
+          <span class="emom-exo-field-label">Exercice</span>
+          <input class="emom-exo-name" type="text" placeholder="Nom de l'exercice" value="${name}" autocomplete="off">
+        </div>
+        <div class="emom-exo-field emom-exo-field--reps">
+          <span class="emom-exo-field-label">Répétitions</span>
+          <input class="emom-exo-reps" type="number" min="1" placeholder="0" value="${reps}">
+        </div>
+      </div>
+      <button class="exo-remove-btn emom-exo-remove"><i data-lucide="x"></i></button>
+    `;
+    row.querySelector('.emom-exo-remove').addEventListener('click', () => row.remove());
+    exoList.appendChild(row);
+    lucide.createIcons();
+  }
+
+  exos.forEach(e => addEmomExo(e.name, e.reps));
+  block.querySelector('.emom-remove-btn').addEventListener('click', () => block.remove());
+
+  // Compteurs intervalle / tours
+  function makeCounter(minusSel, plusSel, valSel, min, max, step) {
+    let v = parseInt(block.querySelector(valSel).textContent);
+    block.querySelector(minusSel).addEventListener('click', () => {
+      if (v > min) { v -= step; block.querySelector(valSel).textContent = v; }
+    });
+    block.querySelector(plusSel).addEventListener('click', () => {
+      if (v < max) { v += step; block.querySelector(valSel).textContent = v; }
+    });
+  }
+  makeCounter('.emom-int-minus',    '.emom-int-plus',    '.emom-int-val',    5,  300, 5);
+  makeCounter('.emom-rounds-minus', '.emom-rounds-plus', '.emom-rounds-val', 1,  60,  1);
+
+  container.appendChild(block);
+  lucide.createIcons();
+}
+
 // ── SAVE ─────────────────────────────────────────────────
 function saveModal() {
   const settings  = getSettings();
@@ -338,8 +423,21 @@ function saveModal() {
     if (name && sets.length > 0) exercises.push({ name, bodyweight: false, sets });
   });
 
+  const emoms = [];
+  document.querySelectorAll('.emom-block').forEach(block => {
+    const interval = parseInt(block.querySelector('.emom-int-val').textContent)    || 60;
+    const rounds   = parseInt(block.querySelector('.emom-rounds-val').textContent) || 10;
+    const exoRows  = [];
+    block.querySelectorAll('.emom-exo-row').forEach(row => {
+      const name = row.querySelector('.emom-exo-name').value.trim();
+      const reps = parseInt(row.querySelector('.emom-exo-reps').value) || 0;
+      if (name) exoRows.push({ name, reps });
+    });
+    if (exoRows.length > 0) emoms.push({ interval, rounds, exercises: exoRows });
+  });
+
   addToExoHistory(exercises.map(e => e.name));
-  persistSession(modalDateKey, exercises);
+  persistSession(modalDateKey, exercises, emoms);
   closeModal();
   renderWeek();
   refreshHome();
@@ -439,6 +537,7 @@ function finishSession(dateKey) {
   $on('btn-cancel',             'click', closeModal);
   $on('btn-save',               'click', saveModal);
   $on('btn-add-exo',            'click', () => addExercise());
+  $on('btn-add-emom',           'click', () => addEmom());
   $on('btn-delete-session',     'click', () => {
     document.getElementById('confirm-delete-date').textContent = formatLong(modalDateKey);
     document.getElementById('confirm-delete-overlay').classList.add('open');

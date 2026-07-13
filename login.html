@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connexion – Imaz</title>
+  <title>Connexion – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <style>
     body {
@@ -26,10 +26,11 @@
     .login-logo { text-align: center; }
 
     .login-logo-text {
-      font-size: 32px;
-      font-weight: 900;
-      letter-spacing: -1px;
-      color: var(--accent);
+      font-family: 'PhosphateSolid', 'Bebas Neue', sans-serif;
+      font-size: 40px;
+      font-weight: normal;
+      letter-spacing: 2px;
+      color: #041FA6;
     }
 
     .login-logo-sub {
@@ -191,7 +192,7 @@
   <div class="login-card">
 
     <div class="login-logo">
-      <div class="login-logo-text">Imaz</div>
+      <div class="login-logo-text">ARMAZ</div>
       <div class="login-logo-sub">Ton carnet d'entraînement</div>
     </div>
 
@@ -206,21 +207,6 @@
       <div class="login-field" id="field-username" style="display:none">
         <input class="login-input no-icon" type="text" id="input-username"
                placeholder="Pseudo (unique)" autocomplete="username">
-      </div>
-
-      <!-- Rôle (inscription uniquement) -->
-      <div id="field-role" style="display:none">
-        <p class="login-role-label">Je suis…</p>
-        <div class="login-role-group">
-          <button class="login-role-opt active" id="role-athlete" type="button">
-            <i data-lucide="dumbbell"></i>
-            Athlète
-          </button>
-          <button class="login-role-opt" id="role-coach" type="button">
-            <i data-lucide="clipboard-list"></i>
-            Coach
-          </button>
-        </div>
       </div>
 
       <!-- Email -->
@@ -266,8 +252,7 @@
       if (session) window.location.href = 'index.html';
     });
 
-    let mode         = 'login';
-    let selectedRole = 'athlete';
+    let mode = 'login';
 
     const tabLogin      = document.getElementById('tab-login');
     const tabSignup     = document.getElementById('tab-signup');
@@ -278,7 +263,6 @@
     const usernameInput = document.getElementById('input-username');
     const fieldUsername = document.getElementById('field-username');
     const fieldConfirm  = document.getElementById('field-confirm');
-    const fieldRole     = document.getElementById('field-role');
 
     function setMode(m) {
       mode = m;
@@ -289,21 +273,8 @@
       pwInput.autocomplete  = isSignup ? 'new-password' : 'current-password';
       fieldUsername.style.display = isSignup ? '' : 'none';
       fieldConfirm.style.display  = isSignup ? '' : 'none';
-      fieldRole.style.display     = isSignup ? '' : 'none';
       errEl.textContent = '';
     }
-
-    // ── Sélection du rôle ──
-    document.getElementById('role-athlete').addEventListener('click', () => {
-      selectedRole = 'athlete';
-      document.getElementById('role-athlete').classList.add('active');
-      document.getElementById('role-coach').classList.remove('active');
-    });
-    document.getElementById('role-coach').addEventListener('click', () => {
-      selectedRole = 'coach';
-      document.getElementById('role-coach').classList.add('active');
-      document.getElementById('role-athlete').classList.remove('active');
-    });
 
     tabLogin.addEventListener('click',  () => setMode('login'));
     tabSignup.addEventListener('click', () => setMode('signup'));
@@ -381,7 +352,7 @@
         // Passe pseudo + rôle en métadonnées → le trigger DB crée le profil automatiquement
         const { data: signupData, error } = await _supabase.auth.signUp({
           email, password,
-          options: { data: { username, name: username, role: selectedRole } }
+          options: { data: { username, name: username } }
         });
         if (error) {
           errEl.textContent = error.message;
@@ -392,7 +363,7 @@
         if (signupData.user) {
           // Upsert en fallback (si la session est dispo, ex: sans confirmation email)
           const { error: profileError } = await _supabase.from('profiles').upsert(
-            { user_id: signupData.user.id, username, name: username, photo: '', role: selectedRole, updated_at: new Date().toISOString() },
+            { user_id: signupData.user.id, username, name: username, photo: '', updated_at: new Date().toISOString() },
             { onConflict: 'user_id' }
           );
           if (profileError) {
@@ -405,7 +376,6 @@
           }
           localStorage.setItem('imaz_profil_username', username);
           localStorage.setItem('imaz_profil_name',     username);
-          localStorage.setItem('imaz_profil_role',     selectedRole);
         }
       }
 

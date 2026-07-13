@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Partager une séance – Imaz</title>
+  <title>Partager une séance – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/form.css">
   <link rel="stylesheet" href="css/settings.css">
   <style>
-    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 100px; }
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: calc(150px + env(safe-area-inset-bottom, 20px)); }
 
     /* ── Date selector ── */
     .share-date-row {
@@ -55,10 +55,10 @@
     /* ── Footer ── */
     .share-footer {
       position: fixed;
-      bottom: 0;
+      bottom: calc(70px + env(safe-area-inset-bottom, 0px));
       left: 0;
       right: 0;
-      padding: 12px 16px 28px;
+      padding: 12px 16px;
       background: var(--bg);
       border-top: 1px solid var(--border);
     }
@@ -637,28 +637,6 @@
       document.getElementById('confirm-ol-ok').disabled = true;
       document.getElementById('confirm-ol-ok').textContent = '…';
 
-      // Limite de 5 partages pour les athlètes
-      const isPro = (localStorage.getItem('imaz_plan') || 'free') === 'pro';
-      const isCoach = (localStorage.getItem('imaz_profil_role') || 'athlete') === 'coach';
-      if (!isPro && !isCoach) {
-        const { data: { session: authSession } } = await _supabase.auth.getSession();
-        const { count } = await _supabase
-          .from('session_invitations')
-          .select('*', { count: 'exact', head: true })
-          .eq('sender_id', authSession.user.id);
-        if (count >= 5) {
-          confirmOlOverlay.classList.remove('open');
-          const errEl = document.getElementById('modal-save-error');
-          errEl.textContent = 'Limite de 5 partages atteinte. Passe en Pro pour partager sans limite.';
-          errEl.hidden = false;
-          document.getElementById('confirm-ol-ok').disabled = false;
-          document.getElementById('confirm-ol-ok').innerHTML = '<i data-lucide="send"></i> Envoyer';
-          lucide.createIcons();
-          setTimeout(() => window.location.href = 'pricing.html', 2500);
-          return;
-        }
-      }
-
       const { error } = await sendInvitation({
         recipientId: selectedUser.id,
         dateKey:     selectedDateKey,
@@ -732,6 +710,19 @@
       lucide.createIcons();
     }
   </script>
+
+  <nav class="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);padding:10px 0 max(20px,env(safe-area-inset-bottom))">
+    <button class="nav-btn" onclick="window.location.href='index.html'">
+      <i data-lucide="home"></i><span>Accueil</span>
+    </button>
+    <button class="nav-btn active">
+      <i data-lucide="send"></i><span>Partager</span>
+    </button>
+    <button class="nav-btn" onclick="window.location.href='reglages.html'">
+      <i data-lucide="user"></i><span>Profil</span>
+    </button>
+  </nav>
+  <script>lucide.createIcons();</script>
 
 </body>
 </html>

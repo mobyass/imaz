@@ -1,3 +1,174 @@
+/* ── CHRONO EMOM CARD ── */
+.chrono-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.2s;
+  margin: 0 16px;
+}
+
+.chrono-card.running { border-color: var(--accent); }
+
+.chrono-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chrono-mode-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.chrono-settings-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+.chrono-settings-btn:hover { color: var(--text); background: var(--surface-2); }
+.chrono-settings-btn.active { color: var(--accent); }
+.chrono-settings-btn svg { width: 18px; height: 18px; }
+
+.chrono-settings-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chrono-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chrono-setting-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chrono-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.chrono-time {
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.chrono-emom-info {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.chrono-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.chrono-btn {
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+.chrono-btn svg { width: 16px; height: 16px; }
+.chrono-btn:hover { opacity: 0.85; }
+
+.chrono-btn-main {
+  flex: 1;
+  background: var(--accent);
+  color: white;
+  padding: 13px;
+  justify-content: center;
+}
+
+.chrono-btn-main.paused {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+
+.chrono-btn-reset {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 13px 16px;
+}
+
+.chrono-emom-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chrono-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.chrono-emom-dur {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+
+.chrono-dur-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#chrono-dur-val { min-width: 24px; text-align: center; }
+
 /* ── TIMER MODAL ── */
 .timer-overlay {
   position: fixed;

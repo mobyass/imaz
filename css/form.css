@@ -85,6 +85,17 @@
 .exo-name-wrap {
   flex: 1;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exo-name-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .exo-name-input {
@@ -104,13 +115,13 @@
   left: 0;
   right: 0;
   top: calc(100% + 3px);
+  z-index: 200;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  z-index: 200;
   max-height: 180px;
   overflow-y: auto;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  box-shadow: 0 6px 20px rgba(4,31,166,0.12);
 }
 
 .exo-sugg-item {
@@ -339,6 +350,173 @@
 }
 
 .btn-add-exo:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── EMOM BLOCK ── */
+.emom-block {
+  background: var(--bg);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.emom-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.emom-block-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.emom-block-label svg { width: 13px; height: 13px; }
+
+.emom-block-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.emom-setting {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emom-setting > span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.emom-counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.emom-counter-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+.emom-counter-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+.emom-counter-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  min-width: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.emom-counter-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.emom-exo-list { display: flex; flex-direction: column; gap: 10px; }
+
+.emom-exo-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 10px 10px 12px;
+}
+
+.emom-exo-fields {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  align-items: flex-end;
+}
+
+.emom-exo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.emom-exo-field--reps {
+  flex: 0 0 72px;
+}
+
+.emom-exo-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.emom-exo-row input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.emom-exo-row input:focus { outline: none; border-color: var(--accent); }
+.emom-exo-row input::placeholder { color: var(--text-muted); font-weight: 400; }
+.emom-exo-row input[type="number"] { text-align: center; }
+
+.emom-add-exo {
+  background: none;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  padding: 9px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  transition: background 0.15s;
+}
+.emom-add-exo:hover { background: var(--accent-dim); }
+.emom-add-exo svg { width: 13px; height: 13px; }
 
 .btn-danger {
   background: none;

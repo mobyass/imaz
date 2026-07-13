@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Réglages – Imaz</title>
+  <title>Réglages – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/settings.css">
   <style>
@@ -32,11 +32,6 @@
           <div class="settings-avatar-overlay"><i data-lucide="camera"></i></div>
         </div>
         <input type="file" id="settings-photo-input" accept="image/*" hidden>
-      </div>
-
-      <div class="settings-row">
-        <span class="settings-label">Nom</span>
-        <input class="settings-text-input" type="text" id="settings-name" placeholder="Ton prénom">
       </div>
 
       <div class="settings-row">
@@ -136,26 +131,6 @@
       </div>
     </div>
 
-    <!-- ── ABONNEMENT ── -->
-    <div class="settings-section">
-      <h3 class="settings-section-title">Abonnement</h3>
-      <div class="settings-row">
-        <div class="settings-row-info">
-          <span class="settings-label">Plan actuel</span>
-          <span class="settings-desc" id="plan-desc">Chargement…</span>
-        </div>
-        <button id="btn-subscribe" class="btn-primary"
-          style="flex-shrink:0;font-size:13px;padding:6px 14px;display:none"
-          onclick="window.location.href='pricing.html'">
-          S'abonner
-        </button>
-        <span id="plan-active-badge"
-          style="display:none;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-dim);border-radius:20px;padding:4px 12px;flex-shrink:0">
-          ⭐ Pro
-        </span>
-      </div>
-    </div>
-
     <!-- ── COMPTE ── -->
     <div class="settings-section" style="margin-top:8px">
       <div class="settings-row">
@@ -182,14 +157,7 @@
     document.getElementById('btn-logout').addEventListener('click', logout);
     lucide.createIcons();
 
-    const plan = localStorage.getItem('imaz_plan') || 'free';
-    if (plan === 'pro') {
-      document.getElementById('plan-desc').textContent = 'Pro — actif';
-      document.getElementById('plan-active-badge').style.display = '';
-    } else {
-      document.getElementById('plan-desc').textContent = 'Gratuit · Passe à Pro pour débloquer le mode Coach';
-      document.getElementById('btn-subscribe').style.display = '';
-    }
+
   </script>
   <script src="js/settings.js"></script>
 
@@ -198,7 +166,6 @@
     const settingsAvatar    = document.getElementById('settings-avatar');
     const settingsInitials  = document.getElementById('settings-initials');
     const settingsPhotoInput = document.getElementById('settings-photo-input');
-    const settingsName      = document.getElementById('settings-name');
     const settingsUsername  = document.getElementById('settings-username');
     const profilSaveMsg     = document.getElementById('profil-save-msg');
 
@@ -207,15 +174,12 @@
     }
 
     const saveRow = document.getElementById('settings-save-row');
-    let refName     = localStorage.getItem('imaz_profil_name') || '';
     let refUsername = localStorage.getItem('imaz_profil_username') || '';
 
     function loadSettingsProfile() {
-      const name     = localStorage.getItem('imaz_profil_name') || '';
       const photo    = localStorage.getItem('imaz_profil_photo') || '';
       const username = localStorage.getItem('imaz_profil_username') || '';
 
-      settingsName.value     = name;
       settingsUsername.value = username;
 
       if (photo) {
@@ -225,18 +189,16 @@
         settingsInitials.textContent = '';
       } else {
         settingsAvatar.style.backgroundImage = '';
-        settingsInitials.textContent = name ? getInitials(name) : '';
+        settingsInitials.textContent = username ? getInitials(username) : '';
       }
     }
     loadSettingsProfile();
 
     // Affiche le bouton Enregistrer seulement si changement détecté
     function checkChanges() {
-      const changed = settingsName.value.trim() !== refName ||
-                      settingsUsername.value.trim() !== refUsername;
+      const changed = settingsUsername.value.trim() !== refUsername;
       saveRow.style.display = changed ? '' : 'none';
     }
-    settingsName.addEventListener('input', checkChanges);
     settingsUsername.addEventListener('input', () => {
       const pos = settingsUsername.selectionStart;
       settingsUsername.value = settingsUsername.value.toLowerCase();
@@ -272,8 +234,8 @@
 
     // Save
     document.getElementById('settings-profil-save').addEventListener('click', async () => {
-      const name     = settingsName.value.trim();
       const username = settingsUsername.value.trim().toLowerCase();
+      const name     = username;
       const photo    = localStorage.getItem('imaz_profil_photo') || '';
 
       if (!username) {
@@ -310,7 +272,6 @@
         return;
       }
 
-      refName     = name;
       refUsername = username;
       loadSettingsProfile();
       showProfilMsg('Profil enregistré !', 'success');
@@ -324,20 +285,6 @@
       setTimeout(() => { profilSaveMsg.style.display = 'none'; }, 3000);
     }
 
-    // ── RÔLE ──
-    const roleToggle = document.getElementById('toggle-role');
-    const currentRole = localStorage.getItem('imaz_profil_role') || 'athlete';
-    roleToggle.querySelectorAll('.toggle-opt').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.value === currentRole);
-      btn.addEventListener('click', async () => {
-        const newRole = btn.dataset.value;
-        const plan = localStorage.getItem('imaz_plan') || 'free';
-        roleToggle.querySelectorAll('.toggle-opt').forEach(b =>
-          b.classList.toggle('active', b === btn));
-        localStorage.setItem('imaz_profil_role', newRole);
-        syncProfileToSupabase({ role: newRole });
-      });
-    });
   </script>
 
 </body>
