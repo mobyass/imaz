@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Profil – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/settings.css">
@@ -63,19 +63,11 @@
       </div>
       <i data-lucide="chevron-right" class="profil-link-arrow"></i>
     </div>
-    <div class="profil-link-row" id="link-athletes" style="display:none" onclick="window.location.href='athletes.html'">
+    <div class="profil-link-row" id="link-athletes" onclick="window.location.href='athletes.html'">
       <div class="profil-link-icon"><i data-lucide="users"></i></div>
       <div class="profil-link-info">
         <span class="profil-link-title">Athlètes</span>
         <span class="profil-link-sub">Tes athlètes</span>
-      </div>
-      <i data-lucide="chevron-right" class="profil-link-arrow"></i>
-    </div>
-    <div class="profil-link-row" id="link-athletes-sessions" style="display:none" onclick="window.location.href='athletes-sessions.html'">
-      <div class="profil-link-icon"><i data-lucide="calendar-check"></i></div>
-      <div class="profil-link-info">
-        <span class="profil-link-title">Séances des athlètes</span>
-        <span class="profil-link-sub">Dernières séances complétées</span>
       </div>
       <i data-lucide="chevron-right" class="profil-link-arrow"></i>
     </div>
@@ -92,35 +84,37 @@
   <script>
     lucide.createIcons();
 
-    document.getElementById('link-athletes').style.display = '';
-    document.getElementById('link-athletes-sessions').style.display = '';
-    document.getElementById('nav-partager-profil').style.display = '';
-
     // ── AFFICHAGE PROFIL (lecture seule) ──
     function getInitials(name) {
-      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+      return name.trim().slice(0, 2).toUpperCase();
     }
 
     function loadProfile() {
-      const name     = localStorage.getItem('imaz_profil_name') || '';
-      const photo    = localStorage.getItem('imaz_profil_photo') || '';
-      const username = localStorage.getItem('imaz_profil_username') || '';
-      const avatarEl = document.getElementById('profil-avatar');
-
-      document.getElementById('profil-name-display').textContent = name || 'Mon Profil';
+      const username = localStorage.getItem('imaz_profil_username')
+                    || localStorage.getItem('imaz_profil_name')
+                    || '';
+      document.getElementById('profil-name-display').textContent = username || '—';
       document.getElementById('profil-username-display').textContent = username ? `@${username}` : '';
-
-      if (photo) {
-        avatarEl.style.backgroundImage    = `url(${photo})`;
-        avatarEl.style.backgroundSize     = 'cover';
-        avatarEl.style.backgroundPosition = 'center';
-        document.getElementById('profil-initials').textContent = '';
-      } else {
-        avatarEl.style.backgroundImage = '';
-        document.getElementById('profil-initials').textContent = name ? getInitials(name) : '';
-      }
+      document.getElementById('profil-initials').textContent = username ? getInitials(username) : '';
     }
     loadProfile();
+
+    // Toujours récupérer le pseudo depuis Supabase pour être à jour
+    _supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      // Cherche dans la table profiles d'abord
+      _supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle().then(({ data }) => {
+        const username = data?.username
+          || user.user_metadata?.username
+          || localStorage.getItem('imaz_profil_name')
+          || '';
+        if (username) {
+          localStorage.setItem('imaz_profil_username', username);
+          localStorage.setItem('imaz_profil_name', username);
+          loadProfile();
+        }
+      });
+    });
 
     // ── STATS SEMAINE ──
     function getWeekBounds() {

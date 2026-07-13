@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Activités – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/settings.css">
@@ -57,56 +57,72 @@
       return `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
     }
 
+    function sessionRow(key, s, onclick) {
+      const exoNames = s.exercises ? s.exercises.map(e => e.name).filter(Boolean) : [];
+      const sub = exoNames.length > 0 ? exoNames.join(', ') : 'Séance planifiée';
+      const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
+      return `
+        <div class="profil-link-row" style="cursor:pointer" onclick="${onclick}">
+          <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
+          <div class="profil-link-info">
+            <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
+            <span class="profil-link-sub">${sub}</span>
+          </div>
+          <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+        </div>`;
+    }
+
     function render() {
       const sessions = getSessions();
       const todayKey = dateToKey(new Date());
       const list     = document.getElementById('activites-list');
+      const all      = Object.entries(sessions);
 
-      const past = Object.entries(sessions)
+      const future = all
+        .filter(([key, s]) => key > todayKey || (key === todayKey && !s.completed))
+        .sort((a, b) => a[0].localeCompare(b[0]));
+
+      const past = all
         .filter(([key, s]) => key < todayKey || (key === todayKey && s.completed))
         .sort((a, b) => b[0].localeCompare(a[0]));
 
-      if (past.length === 0) {
-        list.innerHTML = '<p class="activites-empty">Aucune séance passée pour l\'instant.</p>';
+      if (all.length === 0) {
+        list.innerHTML = '<p class="activites-empty">Aucune séance pour l\'instant.</p>';
         return;
       }
 
-      // Group by year-month
-      const groups = {};
-      past.forEach(([key, s]) => {
-        const ym = key.slice(0, 7);
-        if (!groups[ym]) groups[ym] = [];
-        groups[ym].push([key, s]);
-      });
-
       let html = '';
-      Object.entries(groups)
-        .sort((a, b) => b[0].localeCompare(a[0]))
-        .forEach(([ym, entries]) => {
-          const [y, m] = ym.split('-').map(Number);
-          html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
-          html += `<div class="profil-links activites-group">`;
-          entries.forEach(([key, s]) => {
-            const exoCount = s.exercises ? s.exercises.filter(e =>
-              (e.done || []).some(d => d.validated === true)).length : 0;
-            const setCount = s.exercises ? s.exercises.reduce((acc, e) =>
-              acc + (e.done || []).filter(d => d.validated === true).length, 0) : 0;
-            const sub = exoCount === 0
-              ? 'Séance planifiée'
-              : `${exoCount} exercice${exoCount !== 1 ? 's' : ''} · ${setCount} série${setCount !== 1 ? 's' : ''}`;
-            const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
-            html += `
-              <div class="profil-link-row" style="cursor:pointer" onclick="openSessionViewModal('${key}')">
-                <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
-                <div class="profil-link-info">
-                  <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
-                  <span class="profil-link-sub">${sub}</span>
-                </div>
-                <i data-lucide="chevron-right" class="profil-link-arrow"></i>
-              </div>`;
-          });
-          html += `</div>`;
+
+      // ── À venir ──
+      if (future.length > 0) {
+        html += `<div class="activites-month-label">À venir</div>`;
+        html += `<div class="profil-links activites-group">`;
+        future.forEach(([key, s]) => {
+          html += sessionRow(key, s, `openSessionViewModal('${key}')`);
         });
+        html += `</div>`;
+      }
+
+      // ── Passées groupées par mois ──
+      if (past.length > 0) {
+        const groups = {};
+        past.forEach(([key, s]) => {
+          const ym = key.slice(0, 7);
+          if (!groups[ym]) groups[ym] = [];
+          groups[ym].push([key, s]);
+        });
+        Object.entries(groups)
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .forEach(([ym, entries]) => {
+            const [y, m] = ym.split('-').map(Number);
+            html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
+            html += `<div class="profil-links activites-group">`;
+            entries.forEach(([key, s]) => {
+              html += sessionRow(key, s, `openSessionViewModal('${key}')`);
+            });
+            html += `</div>`;
+          });
+      }
 
       list.innerHTML = html;
       lucide.createIcons();

@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Connexion – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <style>
@@ -320,6 +320,22 @@
       if (mode === 'signup') {
         if (!username) {
           errEl.textContent = 'Choisis un pseudo.';
+          return;
+        }
+        if (username.length < 3) {
+          errEl.textContent = 'Le pseudo doit faire au moins 3 caractères.';
+          return;
+        }
+        if (!/^[a-z0-9._]+$/.test(username)) {
+          errEl.textContent = 'Lettres, chiffres, _ et . uniquement.';
+          return;
+        }
+        if (username.startsWith('.') || username.endsWith('.')) {
+          errEl.textContent = 'Le pseudo ne peut pas commencer ou finir par un point.';
+          return;
+        }
+        if (/\.\./.test(username)) {
+          errEl.textContent = 'Pas de deux points consécutifs.';
           return;
         }
         if (password !== confirm) {

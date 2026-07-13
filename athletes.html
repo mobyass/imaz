@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Athlètes – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/settings.css">
@@ -120,7 +120,7 @@
 
     function getInitials(name) {
       if (!name) return '?';
-      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+      return name.trim().slice(0, 2).toUpperCase();
     }
 
     checkAuth().then(async () => {
@@ -169,25 +169,17 @@
         row.className = 'prat-row';
         row.style.cursor = 'pointer';
         row.addEventListener('click', () => {
-          const name = encodeURIComponent(p.name || p.username || '');
+          const name = encodeURIComponent(p.username || p.name || '');
           window.location.href = `athlete-profile.html?id=${p.user_id}&name=${name}`;
         });
 
         const avatar = document.createElement('div');
         avatar.className = 'prat-avatar';
-        if (p.photo) {
-          avatar.style.backgroundImage    = `url(${p.photo})`;
-          avatar.style.backgroundSize     = 'cover';
-          avatar.style.backgroundPosition = 'center';
-        } else {
-          avatar.textContent = getInitials(p.name || p.username);
-        }
+        avatar.textContent = getInitials(p.username || p.name);
 
         const info = document.createElement('div');
         info.className = 'prat-info';
-        info.innerHTML = `
-          <div class="prat-name">${p.name || p.username || '—'}</div>
-          <div class="prat-username">@${p.username || ''}</div>`;
+        info.innerHTML = `<div class="prat-name">@${p.username || p.name || '—'}</div>`;
 
         const arrow = document.createElement('i');
         arrow.setAttribute('data-lucide', 'chevron-right');
@@ -207,7 +199,7 @@
         btnActivites.textContent = 'Activités';
         btnActivites.onclick = (e) => {
           e.stopPropagation();
-          const name = encodeURIComponent(p.name || p.username || '');
+          const name = encodeURIComponent(p.username || p.name || '');
           window.location.href = `athlete-profile.html?id=${p.user_id}&name=${name}`;
         };
 
@@ -216,7 +208,7 @@
         btnAddSession.textContent = '+ Séance';
         btnAddSession.onclick = (e) => {
           e.stopPropagation();
-          const name     = encodeURIComponent(p.name || p.username || '');
+          const name     = encodeURIComponent(p.username || p.name || '');
           const username = encodeURIComponent(p.username || '');
           window.location.href = `share-session.html?recipient_id=${p.user_id}&recipient_name=${name}&recipient_username=${username}`;
         };

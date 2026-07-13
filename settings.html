@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Réglages – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/settings.css">
@@ -29,29 +29,15 @@
     <div class="settings-section">
       <h3 class="settings-section-title">Profil</h3>
 
-      <!-- Avatar avec upload photo -->
       <div class="settings-avatar-wrap">
-        <div class="settings-avatar" id="settings-avatar">
+        <div class="settings-avatar" id="settings-avatar" style="cursor:default">
           <span id="settings-initials"></span>
-          <div class="settings-avatar-overlay"><i data-lucide="camera"></i></div>
         </div>
-        <input type="file" id="settings-photo-input" accept="image/*" hidden>
       </div>
 
       <div class="settings-row">
         <span class="settings-label">Pseudo</span>
-        <input class="settings-text-input" type="text" id="settings-username" placeholder="pseudo">
-      </div>
-
-      <div class="settings-row">
-        <div class="settings-row-info">
-          <span class="settings-label">Rôle</span>
-          <span class="settings-desc">Athlète ou coach</span>
-        </div>
-        <div class="toggle-group" id="toggle-role">
-          <button class="toggle-opt" data-value="athlete">Athlète</button>
-          <button class="toggle-opt" data-value="coach">Coach</button>
-        </div>
+        <input class="settings-text-input" type="text" id="settings-username" placeholder="pseudo" maxlength="30">
       </div>
 
       <div class="settings-row" id="settings-save-row" style="flex-direction:column;align-items:stretch;gap:8px;display:none">
@@ -180,38 +166,46 @@
 
   <script>
     // ── PROFIL SECTION ──
-    const settingsAvatar    = document.getElementById('settings-avatar');
-    const settingsInitials  = document.getElementById('settings-initials');
-    const settingsPhotoInput = document.getElementById('settings-photo-input');
-    const settingsUsername  = document.getElementById('settings-username');
-    const profilSaveMsg     = document.getElementById('profil-save-msg');
+    const settingsUsername = document.getElementById('settings-username');
+    const profilSaveMsg    = document.getElementById('profil-save-msg');
+    const saveRow          = document.getElementById('settings-save-row');
+    let refUsername        = localStorage.getItem('imaz_profil_username') || '';
 
-    function getInitials(name) {
-      return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    function getInitials(u) {
+      return u.trim().slice(0, 2).toUpperCase();
+    }
+    function refreshAvatar() {
+      document.getElementById('settings-initials').textContent = getInitials(localStorage.getItem('imaz_profil_username') || '');
+    }
+    refreshAvatar();
+
+    // Règles pseudo : lettres, chiffres, _ et . — min 3 chars, pas de . consécutifs, pas . en début/fin
+    function validateUsername(u) {
+      if (u.length < 3)              return 'Le pseudo doit faire au moins 3 caractères.';
+      if (!/^[a-z0-9._]+$/.test(u)) return 'Lettres, chiffres, _ et . uniquement.';
+      if (u.startsWith('.') || u.endsWith('.')) return 'Le pseudo ne peut pas commencer ou finir par un point.';
+      if (/\.\./.test(u))            return 'Pas de deux points consécutifs.';
+      return null;
     }
 
-    const saveRow = document.getElementById('settings-save-row');
-    let refUsername = localStorage.getItem('imaz_profil_username') || '';
+    settingsUsername.value = refUsername;
 
-    function loadSettingsProfile() {
-      const photo    = localStorage.getItem('imaz_profil_photo') || '';
-      const username = localStorage.getItem('imaz_profil_username') || '';
-
-      settingsUsername.value = username;
-
-      if (photo) {
-        settingsAvatar.style.backgroundImage    = `url(${photo})`;
-        settingsAvatar.style.backgroundSize     = 'cover';
-        settingsAvatar.style.backgroundPosition = 'center';
-        settingsInitials.textContent = '';
-      } else {
-        settingsAvatar.style.backgroundImage = '';
-        settingsInitials.textContent = username ? getInitials(username) : '';
-      }
+    // Récupère le pseudo depuis Supabase si absent
+    if (!refUsername) {
+      _supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return;
+        _supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle().then(({ data }) => {
+          if (data?.username) {
+            localStorage.setItem('imaz_profil_username', data.username);
+            localStorage.setItem('imaz_profil_name', data.username);
+            refUsername = data.username;
+            settingsUsername.value = data.username;
+            refreshAvatar();
+          }
+        });
+      });
     }
-    loadSettingsProfile();
 
-    // Affiche le bouton Enregistrer seulement si changement détecté
     function checkChanges() {
       const changed = settingsUsername.value.trim() !== refUsername;
       saveRow.style.display = changed ? '' : 'none';
@@ -223,44 +217,13 @@
       checkChanges();
     });
 
-    // Photo upload
-    settingsAvatar.addEventListener('click', () => settingsPhotoInput.click());
-    settingsPhotoInput.addEventListener('change', () => {
-      const file = settingsPhotoInput.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const size = 200;
-          canvas.width = size; canvas.height = size;
-          const ctx = canvas.getContext('2d');
-          const minDim = Math.min(img.width, img.height);
-          const sx = (img.width  - minDim) / 2;
-          const sy = (img.height - minDim) / 2;
-          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          localStorage.setItem('imaz_profil_photo', dataUrl);
-          loadSettingsProfile();
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-
     // Save
     document.getElementById('settings-profil-save').addEventListener('click', async () => {
       const username = settingsUsername.value.trim().toLowerCase();
-      const name     = username;
-      const photo    = localStorage.getItem('imaz_profil_photo') || '';
 
-      if (!username) {
-        showProfilMsg('Le pseudo ne peut pas être vide.', 'error');
-        return;
-      }
+      const validErr = validateUsername(username);
+      if (validErr) { showProfilMsg(validErr, 'error'); return; }
 
-      // Vérifie unicité du pseudo (en excluant l'utilisateur courant)
       const { data: { user } } = await _supabase.auth.getUser();
       const currentUsername = localStorage.getItem('imaz_profil_username') || '';
       if (username !== currentUsername) {
@@ -270,27 +233,20 @@
           .eq('username', username)
           .neq('user_id', user.id)
           .maybeSingle();
-        if (existing) {
-          showProfilMsg('Ce pseudo est déjà pris.', 'error');
-          return;
-        }
+        if (existing) { showProfilMsg('Ce pseudo est déjà pris.', 'error'); return; }
       }
 
-      localStorage.setItem('imaz_profil_name',     name);
+      localStorage.setItem('imaz_profil_name',     username);
       localStorage.setItem('imaz_profil_username', username);
 
       const { error: syncErr } = await _supabase.from('profiles').upsert(
-        { user_id: user.id, name, username, updated_at: new Date().toISOString() },
+        { user_id: user.id, name: username, username, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       );
-
-      if (syncErr) {
-        showProfilMsg('Erreur BD : ' + syncErr.message, 'error');
-        return;
-      }
+      if (syncErr) { showProfilMsg('Erreur BD : ' + syncErr.message, 'error'); return; }
 
       refUsername = username;
-      loadSettingsProfile();
+      refreshAvatar();
       showProfilMsg('Profil enregistré !', 'success');
       setTimeout(() => { saveRow.style.display = 'none'; }, 3000);
     });

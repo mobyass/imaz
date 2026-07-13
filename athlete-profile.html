@@ -6,7 +6,7 @@
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Activités athlète – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/settings.css">
@@ -52,8 +52,8 @@
 
     const params    = new URLSearchParams(location.search);
     const athleteId = params.get('id');
-    const name      = decodeURIComponent(params.get('name') || 'Athlète');
-    document.getElementById('page-title').textContent = name;
+    const name      = decodeURIComponent(params.get('name') || '');
+    document.getElementById('page-title').textContent = name ? `@${name}` : 'Athlète';
 
     function formatDayLabel(key) {
       const d = parseKey(key);
@@ -124,54 +124,62 @@
         .eq('user_id', athleteId)
         .order('date_key', { ascending: false });
 
-      const completed = (rows || []).filter(r => r.data && r.data.completed === true);
-
-      if (error || completed.length === 0) {
-        list.innerHTML = '<p class="activites-empty">Aucune séance terminée pour cet athlète.</p>';
+      if (error || !rows || rows.length === 0) {
+        list.innerHTML = '<p class="activites-empty">Aucune séance pour cet athlète.</p>';
         return;
       }
 
-      // Grouper par année-mois
-      const groups = {};
-      completed.forEach(r => {
-        const ym = r.date_key.slice(0, 7);
-        if (!groups[ym]) groups[ym] = [];
-        groups[ym].push(r);
-      });
+      const todayKey = dateToKey(new Date());
+
+      function athleteRow(r) {
+        const s   = r.data;
+        const key = r.date_key;
+        const exoNames = s.exercises ? s.exercises.map(e => e.name).filter(Boolean) : [];
+        const sub   = exoNames.length > 0 ? exoNames.join(', ') : 'Séance planifiée';
+        const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
+        const dataAttr = encodeURIComponent(JSON.stringify(s));
+        return `
+          <div class="profil-link-row" style="cursor:pointer"
+               onclick="openAthleteSessionModal(JSON.parse(decodeURIComponent('${dataAttr}')), '${key}')">
+            <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
+            <div class="profil-link-info">
+              <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
+              <span class="profil-link-sub">${sub}</span>
+            </div>
+            <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+          </div>`;
+      }
+
+      const future = rows.filter(r => r.date_key > todayKey || (r.date_key === todayKey && !r.data?.completed))
+                         .sort((a, b) => a.date_key.localeCompare(b.date_key));
+      const past   = rows.filter(r => r.date_key < todayKey || (r.date_key === todayKey && r.data?.completed));
 
       let html = '';
-      Object.entries(groups)
-        .sort((a, b) => b[0].localeCompare(a[0]))
-        .forEach(([ym, entries]) => {
-          const [y, m] = ym.split('-').map(Number);
-          html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
-          html += `<div class="profil-links activites-group">`;
-          entries.forEach(r => {
-            const s        = r.data;
-            const key      = r.date_key;
-            const exoCount = s.exercises ? s.exercises.filter(e =>
-              (e.done || []).some(d => d.validated === true)).length : 0;
-            const setCount = s.exercises ? s.exercises.reduce((acc, e) =>
-              acc + (e.done || []).filter(d => d.validated === true).length, 0) : 0;
-            const sub = exoCount === 0
-              ? 'Séance planifiée'
-              : `${exoCount} exercice${exoCount !== 1 ? 's' : ''} · ${setCount} série${setCount !== 1 ? 's' : ''}`;
-            const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
-            // Encode data as JSON attribute pour l'onclick
-            const dataAttr = encodeURIComponent(JSON.stringify(s));
-            html += `
-              <div class="profil-link-row" style="cursor:pointer"
-                   onclick="openAthleteSessionModal(JSON.parse(decodeURIComponent('${dataAttr}')), '${key}')">
-                <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
-                <div class="profil-link-info">
-                  <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
-                  <span class="profil-link-sub">${sub}</span>
-                </div>
-                <i data-lucide="chevron-right" class="profil-link-arrow"></i>
-              </div>`;
-          });
-          html += `</div>`;
+
+      if (future.length > 0) {
+        html += `<div class="activites-month-label">À venir</div>`;
+        html += `<div class="profil-links activites-group">`;
+        future.forEach(r => { html += athleteRow(r); });
+        html += `</div>`;
+      }
+
+      if (past.length > 0) {
+        const groups = {};
+        past.forEach(r => {
+          const ym = r.date_key.slice(0, 7);
+          if (!groups[ym]) groups[ym] = [];
+          groups[ym].push(r);
         });
+        Object.entries(groups)
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .forEach(([ym, entries]) => {
+            const [y, m] = ym.split('-').map(Number);
+            html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
+            html += `<div class="profil-links activites-group">`;
+            entries.forEach(r => { html += athleteRow(r); });
+            html += `</div>`;
+          });
+      }
 
       list.innerHTML = html;
       lucide.createIcons();
