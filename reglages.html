@@ -30,8 +30,7 @@
     <div class="profil-avatar" id="profil-avatar" style="cursor:default">
       <span id="profil-initials"></span>
     </div>
-    <div class="profil-name" id="profil-name-display">Mon Profil</div>
-    <div class="profil-username-sub" id="profil-username-display"></div>
+    <div class="profil-name" id="profil-username-display"></div>
   </div>
 
   <!-- ── CETTE SEMAINE ── -->
@@ -93,8 +92,7 @@
       const username = localStorage.getItem('imaz_profil_username')
                     || localStorage.getItem('imaz_profil_name')
                     || '';
-      document.getElementById('profil-name-display').textContent = username || '—';
-      document.getElementById('profil-username-display').textContent = username ? `@${username}` : '';
+      document.getElementById('profil-username-display').textContent = username ? `@${username}` : '—';
       document.getElementById('profil-initials').textContent = username ? getInitials(username) : '';
     }
     loadProfile();

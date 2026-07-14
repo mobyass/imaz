@@ -64,6 +64,7 @@ async function loadFromSupabase() {
 async function syncSessionToSupabase(dateKey, data) {
   const { data: { user } } = await _supabase.auth.getUser();
   if (!user) return;
+  markOwnSync();
   await _supabase.from('sessions').upsert(
     { user_id: user.id, date_key: dateKey, data, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,date_key' }
@@ -73,6 +74,7 @@ async function syncSessionToSupabase(dateKey, data) {
 async function deleteSessionFromSupabase(dateKey) {
   const { data: { user } } = await _supabase.auth.getUser();
   if (!user) return;
+  markOwnSync();
   await _supabase.from('sessions')
     .delete()
     .eq('user_id', user.id)
@@ -97,6 +99,54 @@ async function syncProfileToSupabase({ name, photo, username, role } = {}) {
   if (username !== undefined) payload.username = username;
   if (role     !== undefined) payload.role     = role;
   await _supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
+}
+
+// ── REALTIME SYNC ─────────────────────────────────────────
+// Écoute les changements sur la table sessions pour l'utilisateur courant.
+// Quand un autre appareil modifie une séance, on met à jour le localStorage
+// et on rafraîchit l'UI si les fonctions sont disponibles.
+
+let _realtimeChannel = null;
+let _ownSyncTimestamp = 0; // timestamp de notre dernière synchro locale
+
+function markOwnSync() {
+  _ownSyncTimestamp = Date.now();
+}
+
+async function startRealtimeSync() {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return;
+
+  if (_realtimeChannel) {
+    _supabase.removeChannel(_realtimeChannel);
+  }
+
+  _realtimeChannel = _supabase
+    .channel('sessions-sync')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'sessions',
+      filter: `user_id=eq.${user.id}`
+    }, payload => {
+      // Ignorer nos propres synchros (dans les 2 secondes)
+      if (Date.now() - _ownSyncTimestamp < 2000) return;
+
+      const sessions = JSON.parse(localStorage.getItem('imaz_sessions') || '{}');
+
+      if (payload.eventType === 'DELETE') {
+        delete sessions[payload.old.date_key];
+      } else {
+        sessions[payload.new.date_key] = payload.new.data;
+      }
+
+      localStorage.setItem('imaz_sessions', JSON.stringify(sessions));
+
+      // Rafraîchit l'UI si disponible (page d'accueil)
+      if (typeof refreshHome  === 'function') refreshHome();
+      if (typeof renderWeek   === 'function') renderWeek();
+    })
+    .subscribe();
 }
 
 // ── INVITATIONS ───────────────────────────────────────────

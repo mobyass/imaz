@@ -61,6 +61,8 @@ button svg { pointer-events: none; }
   flex: 1;
   overflow-y: auto;
   padding-bottom: 80px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
 }
 
 .page.active { display: flex; flex-direction: column; }
