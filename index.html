@@ -237,6 +237,7 @@
       const [invites, coachReqs] = await Promise.all([
         loadPendingInvitations(),
         loadPendingCoachingRequests(),
+        refreshSessionsFromSupabase(), // charge les données fraîches au démarrage
       ]);
       const total = localCount + invites.length + coachReqs.length;
       if (total > 0) {
@@ -244,8 +245,15 @@
         badge.textContent = total > 9 ? '9+' : total;
         badge.style.display = '';
       }
-      // Sync temps réel entre appareils
+      // Sync temps réel entre appareils (quand la page est ouverte)
       startRealtimeSync();
+    });
+
+    // Rafraîchit quand on revient sur la page (app en arrière-plan, onglet caché, etc.)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        refreshSessionsFromSupabase();
+      }
     });
   </script>
 

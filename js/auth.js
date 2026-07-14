@@ -59,6 +59,24 @@ async function loadFromSupabase() {
   }
 }
 
+// ── REFRESH SESSIONS ──────────────────────────────────────
+// Recharge uniquement les sessions depuis Supabase et rafraîchit l'UI.
+// Appelé au chargement de la page et quand la page redevient visible.
+async function refreshSessionsFromSupabase() {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return;
+  const { data: rows } = await _supabase
+    .from('sessions')
+    .select('date_key, data')
+    .eq('user_id', user.id);
+  if (!rows) return;
+  const sessions = {};
+  rows.forEach(r => { sessions[r.date_key] = r.data; });
+  localStorage.setItem('imaz_sessions', JSON.stringify(sessions));
+  if (typeof refreshHome === 'function') refreshHome();
+  if (typeof renderWeek  === 'function') renderWeek();
+}
+
 // ── SYNC HELPERS (fire-and-forget) ────────────────────────
 
 async function syncSessionToSupabase(dateKey, data) {
