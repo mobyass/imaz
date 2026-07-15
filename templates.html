@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/favicon-32.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Templates – ARMAZ</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/form.css">
+  <link rel="stylesheet" href="css/home.css">
+  <style>
+    body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 40px; }
+
+    #view-form { padding: 0 16px 40px; }
+
+    .tpl-name-wrap {
+      margin-bottom: 16px;
+    }
+
+    .tpl-name-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .tpl-name-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .tpl-name-input:focus { border-color: var(--accent); }
+    .tpl-name-input.input-error { border-color: #e53e3e; }
+
+    .tpl-form-footer {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" id="btn-back-header"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title" id="header-title">Templates</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <!-- ── VUE LISTE ── -->
+  <div id="view-list">
+    <div style="display:flex;justify-content:center;padding:20px 16px 8px">
+      <button class="btn-primary" id="btn-new-template">
+        <i data-lucide="plus"></i> Créer un template
+      </button>
+    </div>
+    <div class="profil-links" id="templates-list">
+      <p style="padding:24px;color:var(--text-muted);text-align:center">Chargement…</p>
+    </div>
+  </div>
+
+  <!-- ── VUE FORMULAIRE ── -->
+  <div id="view-form" style="display:none">
+    <div class="tpl-name-wrap">
+      <label class="tpl-name-label">Nom du template</label>
+      <input type="text" id="template-name-input" class="tpl-name-input" placeholder="Ex : Pull, Push, Jambes…">
+    </div>
+
+    <!-- modal.js remplit ce div -->
+    <div id="modal-exercises"></div>
+
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-add-exo" id="btn-add-exo" style="flex:1">
+        <i data-lucide="plus"></i> Exercice
+      </button>
+      <button class="btn-add-exo" id="btn-add-emom" style="flex:1;background:var(--accent-dim);color:var(--accent);border-color:var(--accent)">
+        <i data-lucide="timer"></i> EMOM
+      </button>
+    </div>
+
+    <p class="modal-error" id="modal-save-error" hidden></p>
+
+    <div class="tpl-form-footer">
+      <button class="btn-secondary" id="btn-tpl-cancel">Annuler</button>
+      <button class="btn-primary" id="btn-tpl-save">Enregistrer</button>
+    </div>
+  </div>
+
+  <!-- Stub pour éviter null ref dans modal.js closeModal() -->
+  <div id="modal-overlay" style="display:none"></div>
+  <div id="modal-date-label" style="display:none"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    // Stubs requis par modal.js
+    function renderWeek()  {}
+    function refreshHome() {}
+    window.todayKey = '';
+  </script>
+  <script src="js/modal.js"></script>
+  <script>
+    lucide.createIcons();
+
+    let _userId     = null;
+    let _editingId  = null;
+
+    // ── NAVIGATION ───────────────────────────────────────────
+    function showList() {
+      document.getElementById('view-list').style.display  = '';
+      document.getElementById('view-form').style.display  = 'none';
+      document.getElementById('header-title').textContent = 'Templates';
+      loadTemplates();
+    }
+
+    function showForm(id = null, tpl = null) {
+      _editingId = id;
+      document.getElementById('view-list').style.display  = 'none';
+      document.getElementById('view-form').style.display  = '';
+      document.getElementById('header-title').textContent = id ? 'Modifier' : 'Nouveau template';
+
+      document.getElementById('template-name-input').value = tpl?.name || '';
+      document.getElementById('modal-save-error').hidden   = true;
+
+      const container = document.getElementById('modal-exercises');
+      container.innerHTML = '';
+
+      const d = tpl ? parseTplData(tpl) : { exercises: [], emoms: [] };
+      if (d.exercises.length || d.emoms.length) {
+        d.exercises.forEach(e => addExercise(e));
+        d.emoms.forEach(e => addEmom(e));
+      } else {
+        addExercise();
+      }
+
+      lucide.createIcons();
+      window.scrollTo(0, 0);
+    }
+
+    // ── LISTE ────────────────────────────────────────────────
+    async function loadTemplates() {
+      const list = document.getElementById('templates-list');
+      list.innerHTML = '<p style="padding:24px;color:var(--text-muted);text-align:center">Chargement…</p>';
+
+      const { data: tpls } = await _supabase
+        .from('workout_templates')
+        .select('*')
+        .eq('owner_id', _userId)
+        .order('created_at', { ascending: false });
+
+      if (!tpls?.length) {
+        list.innerHTML = `<p style="padding:40px 24px;color:var(--text-muted);text-align:center">Aucun template.</p>`;
+        return;
+      }
+
+      list.innerHTML = tpls.map(t => {
+        const d    = parseTplData(t);
+        const exoC = d.exercises.length;
+        const emC  = d.emoms.length;
+        const sub  = [
+          exoC ? `${exoC} exercice${exoC !== 1 ? 's' : ''}` : '',
+          emC  ? `${emC} EMOM`                              : '',
+        ].filter(Boolean).join(' · ') || '—';
+        return `
+        <div class="profil-link-row" onclick="openTemplate('${t.id}')">
+          <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
+          <div class="profil-link-info">
+            <span class="profil-link-title">${t.name}</span>
+            <span class="profil-link-sub">${sub}</span>
+          </div>
+          <button class="icon-btn" style="color:var(--text-muted)" onclick="event.stopPropagation();deleteTemplate('${t.id}')">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>`;}).join('');
+
+      lucide.createIcons();
+    }
+
+    // exercises column stocke {exercises:[...], emoms:[...]} ou [] (ancien format)
+    function parseTplData(t) {
+      const raw = t.exercises;
+      if (Array.isArray(raw)) return { exercises: raw, emoms: [] };
+      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [] };
+    }
+
+    window.openTemplate = async function(id) {
+      const { data: t } = await _supabase
+        .from('workout_templates').select('*').eq('id', id).single();
+      showForm(id, t);
+    };
+
+    window.deleteTemplate = async function(id) {
+      if (!confirm('Supprimer ce template ?')) return;
+      await _supabase.from('workout_templates').delete().eq('id', id);
+      loadTemplates();
+    };
+
+    // ── SAVE ─────────────────────────────────────────────────
+    async function saveTemplate() {
+      const name = document.getElementById('template-name-input').value.trim();
+      const nameInput = document.getElementById('template-name-input');
+      const settings  = getSettings();
+
+      nameInput.classList.toggle('input-error', !name);
+      if (!name) return;
+
+      const exercises = [];
+      let hasError = false;
+
+      document.querySelectorAll('.exo-item').forEach(item => {
+        const ni = item.querySelector('.exo-name-input');
+        if (!ni.value.trim()) { ni.classList.add('input-error'); hasError = true; return; }
+        ni.classList.remove('input-error');
+
+        const isCustom = !item.querySelector('.exo-sets-custom').hidden;
+        let sets = [];
+
+        if (isCustom) {
+          item.querySelectorAll('.set-row').forEach(row => {
+            const restEl = row.querySelector('.set-rest');
+            const restSec = settings.restEnabled
+              ? displayToSec(restEl?.value, settings)
+              : (parseInt(restEl?.value) || 0);
+            sets.push({
+              reps:   parseInt(row.querySelector('.set-reps').value)    || 0,
+              rest:   restSec,
+              weight: parseFloat(row.querySelector('.set-weight').value) || null,
+            });
+          });
+        } else {
+          const count  = parseInt(item.querySelector('.exo-series').value) || 0;
+          const reps   = parseInt(item.querySelector('.exo-reps').value)   || 0;
+          const restEl = item.querySelector('.exo-rest');
+          const rest   = restEl ? displayToSec(restEl.value, settings) : 0;
+          const weight = parseFloat(item.querySelector('.exo-weight').value) || null;
+          for (let i = 0; i < count; i++) sets.push({ reps, rest, weight });
+        }
+
+        if (ni.value.trim() && sets.length > 0)
+          exercises.push({ name: ni.value.trim(), bodyweight: false, sets });
+      });
+
+      if (hasError) {
+        const err = document.getElementById('modal-save-error');
+        err.textContent = 'Certains exercices n\'ont pas de nom.';
+        err.hidden = false;
+        return;
+      }
+
+      // Collecter les EMOMs
+      const emoms = [];
+      document.querySelectorAll('.emom-block').forEach(block => {
+        const interval = parseInt(block.querySelector('.emom-int-val').textContent)    || 60;
+        const rounds   = parseInt(block.querySelector('.emom-rounds-val').textContent) || 10;
+        const exoRows  = [];
+        block.querySelectorAll('.emom-exo-row').forEach(row => {
+          const n = row.querySelector('.emom-exo-name').value.trim();
+          const r = parseInt(row.querySelector('.emom-exo-reps').value) || 0;
+          if (n) exoRows.push({ name: n, reps: r });
+        });
+        if (exoRows.length) emoms.push({ interval, rounds, exercises: exoRows });
+      });
+
+      const btn = document.getElementById('btn-tpl-save');
+      btn.disabled = true;
+      btn.textContent = '…';
+
+      // Stocker exercises + emoms dans la colonne exercises
+      const payload = { exercises, emoms };
+
+      let dbErr;
+      if (_editingId) {
+        ({ error: dbErr } = await _supabase.from('workout_templates')
+          .update({ name, exercises: payload })
+          .eq('id', _editingId));
+      } else {
+        ({ error: dbErr } = await _supabase.from('workout_templates')
+          .insert({ owner_id: _userId, name, exercises: payload }));
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Enregistrer';
+
+      if (dbErr) {
+        const err = document.getElementById('modal-save-error');
+        err.textContent = 'Erreur enregistrement : ' + dbErr.message;
+        err.hidden = false;
+        return;
+      }
+
+      showList();
+    }
+
+    // ── EVENTS ───────────────────────────────────────────────
+    document.getElementById('btn-new-template').addEventListener('click', () => showForm());
+    document.getElementById('btn-tpl-save').addEventListener('click', saveTemplate);
+    document.getElementById('btn-tpl-cancel').addEventListener('click', showList);
+
+    document.getElementById('btn-back-header').addEventListener('click', () => {
+      if (document.getElementById('view-form').style.display !== 'none') {
+        showList();
+      } else {
+        history.back();
+      }
+    });
+
+    // ── INIT ─────────────────────────────────────────────────
+    checkAuth().then(async (user) => {
+      _userId = user.id;
+      if (new URLSearchParams(location.search).get('new') === '1') {
+        showForm();
+      } else {
+        loadTemplates();
+      }
+    });
+  </script>
+
+</body>
+</html>

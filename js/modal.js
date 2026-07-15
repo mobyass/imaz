@@ -15,8 +15,6 @@ function openModal(dateKey) {
 
   if (existing && existing.exercises.length > 0) {
     existing.exercises.forEach(e => addExercise(e));
-  } else {
-    addExercise();
   }
 
   if (existing && existing.emoms) {

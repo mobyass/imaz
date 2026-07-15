@@ -137,8 +137,11 @@
         <button class="btn-add-exo" id="btn-add-exo" style="flex:1">
           <i data-lucide="plus"></i> Exercice
         </button>
-        <button class="btn-add-exo" id="btn-add-emom" style="flex:1;background:var(--accent-dim);color:var(--accent);border-color:var(--accent)">
+        <button class="btn-add-exo" id="btn-add-emom" style="flex:1">
           <i data-lucide="timer"></i> EMOM
+        </button>
+        <button class="btn-add-exo" id="btn-from-template" style="flex:1;background:var(--surface-2)">
+          <i data-lucide="layout-template"></i> Template
         </button>
       </div>
 
@@ -151,6 +154,25 @@
       <div class="modal-footer">
         <button class="btn-secondary" id="btn-cancel">Annuler</button>
         <button class="btn-primary" id="btn-save">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TEMPLATE PICKER -->
+  <div class="modal-overlay" id="tpl-picker-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Choisir un template</h3>
+        <button class="modal-close" id="tpl-picker-close"><i data-lucide="x"></i></button>
+      </div>
+      <div id="tpl-picker-list" style="padding:8px 12px 4px;display:flex;flex-direction:column;gap:6px"></div>
+      <div style="display:flex;gap:8px;padding:10px 12px 14px">
+        <button class="btn-secondary" style="flex:1" onclick="window.location.href='templates.html'">
+          <i data-lucide="layout-template"></i> Mes templates
+        </button>
+        <button class="btn-primary" style="flex:1" onclick="window.location.href='templates.html?new=1'">
+          <i data-lucide="plus"></i> Nouveau
+        </button>
       </div>
     </div>
   </div>
@@ -265,6 +287,72 @@
     checkAuth().then(async () => {
       await Promise.all([updateBadge(), refreshSessionsFromSupabase()]);
       startRealtimeSync();
+    });
+
+    // ── TEMPLATE PICKER ───────────────────────────────────────
+    var _tplList = [];
+
+    function parseTplData(t) {
+      const raw = t.exercises;
+      if (Array.isArray(raw)) return { exercises: raw, emoms: [] };
+      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [] };
+    }
+
+    function applyAllTemplates() {
+      closeTplPicker();
+      const container = document.getElementById('modal-exercises');
+      container.innerHTML = '';
+      _tplList.forEach(t => {
+        const d = parseTplData(t);
+        d.exercises.forEach(e => addExercise(e));
+        d.emoms.forEach(e => addEmom(e));
+      });
+      lucide.createIcons();
+    }
+
+    function applyTpl(idx) {
+      closeTplPicker();
+      const container = document.getElementById('modal-exercises');
+      container.innerHTML = '';
+      const d = parseTplData(_tplList[idx]);
+      d.exercises.forEach(e => addExercise(e));
+      d.emoms.forEach(e => addEmom(e));
+      lucide.createIcons();
+    }
+
+    function closeTplPicker() {
+      document.getElementById('tpl-picker-overlay').classList.remove('open');
+    }
+
+    document.getElementById('btn-from-template').addEventListener('click', async () => {
+      const { data: { user } } = await _supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: tpls } = await _supabase
+        .from('workout_templates')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+      _tplList = tpls || [];
+      const list = document.getElementById('tpl-picker-list');
+
+      if (!_tplList.length) {
+        list.innerHTML = `<p style="padding:16px 4px;color:var(--text-muted);font-size:14px">Aucun template.</p>`;
+      } else {
+        list.innerHTML = _tplList.map((t, i) => `
+            <button class="btn-secondary" style="width:100%;justify-content:center" onclick="applyTpl(${i})">
+              ${t.name}
+            </button>`).join('');
+      }
+
+      document.getElementById('tpl-picker-overlay').classList.add('open');
+      lucide.createIcons();
+    });
+
+    document.getElementById('tpl-picker-close').addEventListener('click', closeTplPicker);
+    document.getElementById('tpl-picker-overlay').addEventListener('click', e => {
+      if (e.target.id === 'tpl-picker-overlay') closeTplPicker();
     });
 
     // Rafraîchit séances ET badge quand on revient sur la page (onglet, app en fond…)
