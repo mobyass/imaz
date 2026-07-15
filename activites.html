@@ -15,6 +15,18 @@
   <style>
     body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 80px; }
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; }
+
+    .session-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .session-card .profil-link-row {
+      border-top: none;
+    }
   </style>
 </head>
 <body>
@@ -66,7 +78,7 @@
           <div class="comment-existing">${c.comment}</div>
         </div>` : '';
       return `
-        <div>
+        <div class="session-card">
           <div class="profil-link-row" style="cursor:pointer" onclick="openSessionViewModal('${key}')">
             <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
             <div class="profil-link-info">
@@ -102,9 +114,7 @@
 
       if (future.length > 0) {
         html += `<div class="activites-month-label">À venir</div>`;
-        html += `<div class="profil-links activites-group">`;
         future.forEach(([key, s]) => { html += sessionRow(key, s, commentMap); });
-        html += `</div>`;
       }
 
       if (past.length > 0) {
@@ -119,9 +129,7 @@
           .forEach(([ym, entries]) => {
             const [y, m] = ym.split('-').map(Number);
             html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
-            html += `<div class="profil-links activites-group">`;
             entries.forEach(([key, s]) => { html += sessionRow(key, s, commentMap); });
-            html += `</div>`;
           });
       }
 
