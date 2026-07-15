@@ -20,7 +20,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
-      margin: 0 16px 10px;
+      margin: 0 0 10px;
     }
 
     .session-card .profil-link-row {
@@ -106,7 +106,7 @@
 
     .comment-send-btn:disabled { opacity: 0.5; }
 
-    .activites-month-label { padding-left: 16px; }
+    .activites-month-label { padding-left: 0; }
   </style>
 </head>
 <body>
@@ -252,7 +252,7 @@
         }
         return `
           <div class="comment-area" id="ca-${key}">
-            <button class="comment-toggle-btn" onclick="toggleNew('${key}')">
+            <button class="comment-toggle-btn" id="ctb-${key}" onclick="toggleNew('${key}')">
               <i data-lucide="message-circle"></i> Laisser un commentaire
             </button>
             <div class="comment-form" id="cf-${key}" style="display:none">
@@ -266,10 +266,11 @@
       }
 
       window.toggleNew = function(key) {
+        const btn  = document.getElementById(`ctb-${key}`);
         const form = document.getElementById(`cf-${key}`);
-        const visible = form.style.display !== 'none';
-        form.style.display = visible ? 'none' : '';
-        if (!visible) form.querySelector('textarea').focus();
+        btn.style.display = 'none';
+        form.style.display = '';
+        form.querySelector('textarea').focus();
       };
 
       window.startEdit = function(key) {
@@ -282,8 +283,10 @@
 
       window.cancelComment = function(key) {
         document.getElementById(`cf-${key}`).style.display = 'none';
-        const cv = document.getElementById(`cv-${key}`);
-        if (cv) cv.style.display = '';
+        const cv  = document.getElementById(`cv-${key}`);
+        const btn = document.getElementById(`ctb-${key}`);
+        if (cv)  cv.style.display  = '';   // modifier commentaire existant → reafficher le texte
+        if (btn) btn.style.display = '';   // nouveau commentaire → reafficher le bouton
       };
 
       window.submitComment = async function(key) {
