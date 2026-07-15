@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/favicon-32.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Évolution – ARMAZ</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <style>
+    body { overflow-y: auto; min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 32px; }
+
+    /* ── PAGE ── */
+    .evo-page {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 12px 0 24px;
+    }
+
+    /* ── DATE ── */
+    .evo-date {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 12px;
+      min-height: 20px;
+    }
+
+    /* ── CAROUSEL ── */
+    .evo-carousel-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      gap: 0;
+    }
+
+    .evo-arrow {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 12px 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .evo-arrow svg { width: 22px; height: 22px; }
+    .evo-arrow:disabled { opacity: 0.15; pointer-events: none; }
+
+    .evo-photos {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .evo-photo-side {
+      width: 18vw;
+      height: 24vw;
+      border-radius: 6px;
+      overflow: hidden;
+      opacity: 0.5;
+      flex-shrink: 0;
+      background: var(--surface-2);
+    }
+
+    .evo-photo-center {
+      width: 26vw;
+      height: 34vw;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--surface-2);
+    }
+
+    @media (max-width: 640px) {
+      .evo-photo-side   { width: 22vw; height: 44vw; }
+      .evo-photo-center { width: 38vw; height: 56vw; }
+      .evo-arrow        { padding: 12px 4px; }
+    }
+
+    .evo-photo-side img,
+    .evo-photo-center img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .evo-photo-empty {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--border);
+    }
+
+    /* ── NOTE + ACTIONS ── */
+    .evo-meta {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 0 24px;
+      box-sizing: border-box;
+    }
+
+    .evo-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .evo-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .evo-add-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .evo-add-btn svg { width: 16px; height: 16px; }
+
+    .evo-delete-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .evo-delete-btn svg { width: 15px; height: 15px; }
+
+    /* ── EMPTY ── */
+    .evo-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .evo-empty-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .evo-empty-icon svg { width: 26px; height: 26px; }
+    .evo-empty p { font-size: 14px; margin: 0; }
+
+    /* ── MODAL UPLOAD ── */
+    .upload-preview {
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      display: none;
+      box-sizing: border-box;
+    }
+
+    .upload-placeholder {
+      width: 100%;
+      height: 160px;
+      background: var(--surface-2);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .upload-placeholder svg { width: 28px; height: 28px; }
+
+    .upload-note {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      margin-top: 12px;
+      box-sizing: border-box;
+    }
+
+    .upload-note:focus { border-color: var(--accent); }
+
+    .upload-date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .upload-date-label { font-size: 12px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+
+    .upload-date-input {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .upload-date-input:focus { border-color: var(--accent); }
+
+    .upload-error { font-size: 12px; color: #e53e3e; margin-top: 8px; display: none; }
+
+    /* ── VUE PLEIN ÉCRAN ── */
+    .photo-full-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.93);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+    }
+    .photo-full-overlay.open { display: flex; }
+
+    .photo-full-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      flex-shrink: 0;
+    }
+
+    .photo-full-close, .photo-full-delete {
+      background: rgba(255,255,255,0.12);
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .photo-full-delete { color: #fc8181; background: rgba(229,62,62,0.18); }
+    .photo-full-date { font-size: 14px; font-weight: 600; color: white; text-align: center; flex: 1; }
+
+    .photo-full-img-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+      overflow: hidden;
+    }
+
+    .photo-full-img-wrap img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+
+    .photo-full-note {
+      padding: 14px 24px 36px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.65);
+      text-align: center;
+      flex-shrink: 0;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="icon-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></button>
+    <div class="header-title">Évolution</div>
+    <div style="width:38px"></div>
+  </header>
+
+  <!-- ── VUE PLEIN ÉCRAN ── -->
+  <div class="photo-full-overlay" id="photo-full-overlay">
+    <div class="photo-full-header">
+      <button class="photo-full-close" id="photo-full-close"><i data-lucide="arrow-left"></i></button>
+      <span class="photo-full-date" id="photo-full-date"></span>
+      <button class="photo-full-delete" id="photo-full-delete"><i data-lucide="trash-2"></i></button>
+    </div>
+    <div class="photo-full-img-wrap">
+      <img id="photo-full-img" src="" alt="">
+    </div>
+    <div class="photo-full-note" id="photo-full-note"></div>
+  </div>
+
+  <div class="evo-page" id="evo-page">
+    <p style="color:var(--text-muted);font-size:14px">Chargement…</p>
+  </div>
+
+
+  <!-- ── FORMULAIRE AJOUT ── -->
+  <div style="padding:16px 32px 40px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">Ajouter une photo</div>
+
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+
+      <div class="upload-placeholder" id="upload-placeholder" onclick="document.getElementById('file-input').click()">
+        <i data-lucide="image-plus"></i>
+        <span>Appuyer pour choisir une photo</span>
+      </div>
+      <img class="upload-preview" id="upload-preview" alt="Aperçu">
+
+      <div class="upload-date-row">
+        <span class="upload-date-label">Date</span>
+        <input type="date" class="upload-date-input" id="upload-date">
+      </div>
+
+      <textarea class="upload-note" id="upload-note" rows="2" placeholder="Note (poids, remarques…)"></textarea>
+
+      <p class="upload-error" id="upload-error"></p>
+
+      <div style="margin-top:14px;display:flex;justify-content:center">
+        <button class="btn-primary" id="upload-save" disabled style="width:auto;padding:10px 28px">
+          <i data-lucide="upload"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/core.js"></script>
+  <script>
+    lucide.createIcons();
+
+    const BUCKET = 'progress-photos';
+    let _userId  = null;
+    let _photos  = [];
+    let _idx     = 0;
+
+    function formatPhotoDate(isoStr) {
+      const d = new Date(isoStr);
+      return `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function photoUrl(path) {
+      const { data } = _supabase.storage.from(BUCKET).getPublicUrl(path);
+      return data.publicUrl;
+    }
+
+    // ── RENDER CAROUSEL ──────────────────────────────────────
+    function renderCarousel() {
+      const page = document.getElementById('evo-page');
+
+      if (_photos.length === 0) {
+        page.innerHTML = `
+          <div class="evo-empty">
+            <div class="evo-empty-icon"><i data-lucide="camera-off"></i></div>
+            <p>Aucune photo pour l'instant.</p>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+
+      const p    = _photos[_idx];
+      const prev = _photos[_idx - 1];
+      const next = _photos[_idx + 1];
+
+      function imgSlot(photo, cls, clickFn) {
+        if (!photo) return `<div class="${cls}"><div class="evo-photo-empty"></div></div>`;
+        return `<div class="${cls}" onclick="${clickFn}" style="cursor:pointer"><img src="${photoUrl(photo.storage_path)}" alt="" loading="lazy"></div>`;
+      }
+
+      page.innerHTML = `
+        <div class="evo-date">${formatPhotoDate(p.taken_at)}</div>
+        <div class="evo-carousel-row">
+          <button class="evo-arrow" id="evo-prev" ${_idx === 0 ? 'disabled' : ''}>
+            <i data-lucide="chevron-left"></i>
+          </button>
+          <div class="evo-photos">
+            ${imgSlot(prev, 'evo-photo-side',   '_nav(-1)')}
+            ${imgSlot(p,    'evo-photo-center',  'openFullscreen()')}
+            ${imgSlot(next, 'evo-photo-side',    '_nav(1)')}
+          </div>
+          <button class="evo-arrow" id="evo-next" ${_idx === _photos.length - 1 ? 'disabled' : ''}>
+            <i data-lucide="chevron-right"></i>
+          </button>
+        </div>`;
+
+      lucide.createIcons();
+
+      document.getElementById('evo-prev').addEventListener('click', () => { if (_idx > 0) { _idx--; renderCarousel(); } });
+      document.getElementById('evo-next').addEventListener('click', () => { if (_idx < _photos.length - 1) { _idx++; renderCarousel(); } });
+
+      let tx = 0;
+      const carousel = document.querySelector('.evo-carousel-row');
+      carousel.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+      carousel.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - tx;
+        if (Math.abs(dx) > 40) {
+          if (dx < 0 && _idx < _photos.length - 1) { _idx++; renderCarousel(); }
+          if (dx > 0 && _idx > 0)                  { _idx--; renderCarousel(); }
+        }
+      });
+    }
+
+    window._nav = function(dir) {
+      const ni = _idx + dir;
+      if (ni >= 0 && ni < _photos.length) { _idx = ni; renderCarousel(); }
+    };
+
+    // ── VUE PLEIN ÉCRAN ──────────────────────────────────────
+    window.openFullscreen = function() {
+      const p = _photos[_idx];
+      document.getElementById('photo-full-img').src        = photoUrl(p.storage_path);
+      document.getElementById('photo-full-date').textContent = formatPhotoDate(p.taken_at);
+      document.getElementById('photo-full-note').textContent = p.note || '';
+      document.getElementById('photo-full-overlay').classList.add('open');
+      lucide.createIcons();
+    };
+
+    document.getElementById('photo-full-close').addEventListener('click', () => {
+      document.getElementById('photo-full-overlay').classList.remove('open');
+    });
+
+    document.getElementById('photo-full-delete').addEventListener('click', async () => {
+      if (!confirm('Supprimer cette photo ?')) return;
+      const p = _photos[_idx];
+      document.getElementById('photo-full-overlay').classList.remove('open');
+      await _supabase.storage.from(BUCKET).remove([p.storage_path]);
+      await _supabase.from('progress_photos').delete().eq('id', p.id);
+      _photos.splice(_idx, 1);
+      if (_idx >= _photos.length && _idx > 0) _idx--;
+      renderCarousel();
+    });
+
+    // ── CHARGER ──────────────────────────────────────────────
+    async function loadPhotos() {
+      const { data } = await _supabase
+        .from('progress_photos')
+        .select('*')
+        .eq('user_id', _userId)
+        .order('taken_at', { ascending: false });
+      _photos = data || [];
+      renderCarousel();
+    }
+
+    // ── UPLOAD ───────────────────────────────────────────────
+    const fileInput   = document.getElementById('file-input');
+    const preview     = document.getElementById('upload-preview');
+    const placeholder = document.getElementById('upload-placeholder');
+    const saveBtn     = document.getElementById('upload-save');
+    const errorEl     = document.getElementById('upload-error');
+    let _selectedFile = null;
+
+    function resetForm() {
+      fileInput.value           = '';
+      _selectedFile             = null;
+      preview.style.display     = 'none';
+      preview.src               = '';
+      placeholder.style.display = 'flex';
+      saveBtn.disabled          = true;
+      saveBtn.innerHTML         = '<i data-lucide="upload"></i> Enregistrer';
+      errorEl.style.display     = 'none';
+      document.getElementById('upload-note').value = '';
+      const today = new Date();
+      document.getElementById('upload-date').value =
+        `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      lucide.createIcons();
+    }
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      _selectedFile = file;
+      preview.src               = URL.createObjectURL(file);
+      preview.style.display     = 'block';
+      placeholder.style.display = 'none';
+      saveBtn.disabled          = false;
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      if (!_selectedFile) return;
+      const note    = document.getElementById('upload-note').value.trim();
+      const dateVal = document.getElementById('upload-date').value;
+      if (!dateVal) {
+        errorEl.textContent   = 'Choisis une date.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      saveBtn.disabled  = true;
+      saveBtn.innerHTML = '…';
+      errorEl.style.display = 'none';
+
+      const ext  = _selectedFile.name.split('.').pop() || 'jpg';
+      const path = `${_userId}/${Date.now()}.${ext}`;
+
+      const { error: uploadErr } = await _supabase.storage
+        .from(BUCKET)
+        .upload(path, _selectedFile, { contentType: _selectedFile.type, upsert: false });
+
+      if (uploadErr) {
+        errorEl.textContent   = 'Erreur upload. Réessaie.';
+        errorEl.style.display = 'block';
+        saveBtn.disabled      = false;
+        saveBtn.innerHTML     = '<i data-lucide="upload"></i> Enregistrer';
+        lucide.createIcons();
+        return;
+      }
+
+      const { error: dbErr } = await _supabase.from('progress_photos').insert({
+        user_id:      _userId,
+        storage_path: path,
+        note:         note || null,
+        taken_at:     new Date(dateVal + 'T12:00:00').toISOString(),
+      });
+
+      if (dbErr) {
+        errorEl.textContent   = 'Erreur enregistrement. Réessaie.';
+        errorEl.style.display = 'block';
+        saveBtn.disabled      = false;
+        saveBtn.innerHTML     = '<i data-lucide="upload"></i> Enregistrer';
+        lucide.createIcons();
+        return;
+      }
+
+      resetForm();
+      await loadPhotos();
+      _idx = 0;
+      renderCarousel();
+    });
+
+    // ── INIT ─────────────────────────────────────────────────
+    checkAuth().then(async (user) => {
+      _userId = user.id;
+      await loadPhotos();
+    });
+  </script>
+
+</body>
+</html>
