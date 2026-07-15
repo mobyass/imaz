@@ -231,29 +231,53 @@
       window.location.href = url;
     }
 
-    checkAuth().then(async () => {
-      const notifs      = JSON.parse(localStorage.getItem('imaz_notifications') || '[]');
-      const localCount  = notifs.filter(n => !n.read).length;
-      const [invites, coachReqs] = await Promise.all([
-        loadPendingInvitations(),
-        loadPendingCoachingRequests(),
-        refreshSessionsFromSupabase(), // charge les données fraîches au démarrage
+    async function updateBadge() {
+      const { data: { user } } = await _supabase.auth.getUser();
+      if (!user) return;
+
+      // Timestamp de la dernière ouverture des notifs — on ne compte que ce qui est arrivé après
+      const seenAt  = localStorage.getItem('imaz_notifs_seen_at') || new Date(0).toISOString();
+      const notifs  = JSON.parse(localStorage.getItem('imaz_notifications') || '[]');
+      const localCount = notifs.filter(n => !n.read).length;
+
+      const [inviteRows, coachReqRows, commentRows] = await Promise.all([
+        _supabase.from('session_invitations')
+          .select('id', { count: 'exact', head: true })
+          .eq('recipient_id', user.id).eq('status', 'pending').gt('created_at', seenAt),
+        _supabase.from('coaching_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('recipient_id', user.id).eq('status', 'pending').gt('created_at', seenAt),
+        _supabase.from('session_comments')
+          .select('id', { count: 'exact', head: true })
+          .eq('athlete_id', user.id).eq('read', false).gt('created_at', seenAt),
       ]);
-      const total = localCount + invites.length + coachReqs.length;
-      if (total > 0) {
-        const badge = document.getElementById('notif-badge');
-        badge.textContent = total > 9 ? '9+' : total;
-        badge.style.display = '';
-      }
-      // Sync temps réel entre appareils (quand la page est ouverte)
+
+      const total = localCount
+        + (inviteRows?.count   || 0)
+        + (coachReqRows?.count || 0)
+        + (commentRows?.count  || 0);
+
+      const badge = document.getElementById('notif-badge');
+      badge.textContent = total > 9 ? '9+' : total;
+      badge.style.display = total > 0 ? '' : 'none';
+    }
+
+    checkAuth().then(async () => {
+      await Promise.all([updateBadge(), refreshSessionsFromSupabase()]);
       startRealtimeSync();
     });
 
-    // Rafraîchit quand on revient sur la page (app en arrière-plan, onglet caché, etc.)
+    // Rafraîchit séances ET badge quand on revient sur la page (onglet, app en fond…)
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         refreshSessionsFromSupabase();
+        updateBadge();
       }
+    });
+
+    // Retour via bouton retour (bfcache mobile) — recharge le badge
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) updateBadge();
     });
   </script>
 

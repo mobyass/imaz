@@ -48,31 +48,38 @@
   <script src="js/core.js"></script>
   <script src="js/modal.js"></script>
   <script>
-    checkAuth();
     lucide.createIcons();
 
-    // Uses DAYS_LONG, MONTHS_SHORT, MONTHS, parseKey from core.js
     function formatDayLabel(key) {
       const d = parseKey(key);
       return `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
     }
 
-    function sessionRow(key, s, onclick) {
+    function sessionRow(key, s, commentMap) {
       const exoNames = s.exercises ? s.exercises.map(e => e.name).filter(Boolean) : [];
-      const sub = exoNames.length > 0 ? exoNames.join(', ') : 'Séance planifiée';
+      const sub   = exoNames.length > 0 ? exoNames.join(', ') : 'Séance planifiée';
       const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
+      const c     = commentMap[key];
+      const commentHtml = c ? `
+        <div class="comment-block">
+          <div class="comment-coach-label">Coach · @${c.coach_username}</div>
+          <div class="comment-existing">${c.comment}</div>
+        </div>` : '';
       return `
-        <div class="profil-link-row" style="cursor:pointer" onclick="${onclick}">
-          <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
-          <div class="profil-link-info">
-            <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
-            <span class="profil-link-sub">${sub}</span>
+        <div>
+          <div class="profil-link-row" style="cursor:pointer" onclick="openSessionViewModal('${key}')">
+            <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
+            <div class="profil-link-info">
+              <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
+              <span class="profil-link-sub">${sub}</span>
+            </div>
+            <i data-lucide="chevron-right" class="profil-link-arrow"></i>
           </div>
-          <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+          ${commentHtml}
         </div>`;
     }
 
-    function render() {
+    function render(commentMap) {
       const sessions = getSessions();
       const todayKey = dateToKey(new Date());
       const list     = document.getElementById('activites-list');
@@ -93,17 +100,13 @@
 
       let html = '';
 
-      // ── À venir ──
       if (future.length > 0) {
         html += `<div class="activites-month-label">À venir</div>`;
         html += `<div class="profil-links activites-group">`;
-        future.forEach(([key, s]) => {
-          html += sessionRow(key, s, `openSessionViewModal('${key}')`);
-        });
+        future.forEach(([key, s]) => { html += sessionRow(key, s, commentMap); });
         html += `</div>`;
       }
 
-      // ── Passées groupées par mois ──
       if (past.length > 0) {
         const groups = {};
         past.forEach(([key, s]) => {
@@ -117,9 +120,7 @@
             const [y, m] = ym.split('-').map(Number);
             html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
             html += `<div class="profil-links activites-group">`;
-            entries.forEach(([key, s]) => {
-              html += sessionRow(key, s, `openSessionViewModal('${key}')`);
-            });
+            entries.forEach(([key, s]) => { html += sessionRow(key, s, commentMap); });
             html += `</div>`;
           });
       }
@@ -128,7 +129,26 @@
       lucide.createIcons();
     }
 
-    render();
+    checkAuth().then(async (user) => {
+      const commentMap = {};
+      if (user) {
+        const { data: comments } = await _supabase
+          .from('session_comments')
+          .select('id, date_key, comment, coach_username, read')
+          .eq('athlete_id', user.id);
+
+        const unreadIds = [];
+        (comments || []).forEach(c => {
+          commentMap[c.date_key] = c;
+          if (!c.read) unreadIds.push(c.id);
+        });
+
+        if (unreadIds.length > 0) {
+          _supabase.from('session_comments').update({ read: true }).in('id', unreadIds);
+        }
+      }
+      render(commentMap);
+    });
   </script>
 
   <nav class="bottom-nav">

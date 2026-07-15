@@ -320,16 +320,64 @@
       return card;
     }
 
+    // ── COMMENT NOTIFICATIONS ──────────────────────────────
+    async function loadUnreadComments(userId) {
+      const { data } = await _supabase
+        .from('session_comments')
+        .select('id, date_key, comment, coach_username, created_at')
+        .eq('athlete_id', userId)
+        .eq('read', false)
+        .order('created_at', { ascending: false });
+      return data || [];
+    }
+
+    function renderCommentNotifs(comments, previousSeenAt) {
+      if (comments.length === 0) return;
+      const label = document.createElement('div');
+      label.className = 'notif-group-label';
+      label.textContent = 'Commentaires de coach';
+      listEl.appendChild(label);
+
+      const card = document.createElement('div');
+      card.className = 'notif-card';
+      comments.forEach(c => {
+        const isNew = c.created_at > previousSeenAt;
+        const d = parseKey(c.date_key);
+        const dateStr = `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+        const row = document.createElement('div');
+        row.className = isNew ? 'notif-row unread' : 'notif-row';
+        row.style.cursor = 'pointer';
+        row.innerHTML = `
+          <div class="notif-icon"><i data-lucide="message-circle"></i></div>
+          <div class="notif-body">
+            <span class="notif-title">@${c.coach_username} a commenté ta séance</span>
+            <span class="notif-sub">${dateStr} · "${c.comment.length > 60 ? c.comment.slice(0, 60) + '…' : c.comment}"</span>
+          </div>
+          ${isNew ? '<div class="notif-dot"></div>' : ''}`;
+        row.addEventListener('click', () => {
+          _supabase.from('session_comments').update({ read: true }).eq('id', c.id);
+          markRowRead(row);
+          window.location.href = 'activites.html';
+        });
+        card.appendChild(row);
+      });
+      listEl.appendChild(card);
+    }
+
     // ── MAIN RENDER ────────────────────────────────────────
-    async function render() {
+    async function render(user) {
+      // Lire l'ancien seen_at AVANT de le mettre à jour
+      const previousSeenAt = localStorage.getItem('imaz_notifs_seen_at') || new Date(0).toISOString();
+
       listEl.innerHTML = '';
-      const [invitations, coachReqs, localNotifs] = await Promise.all([
+      const [invitations, coachReqs, localNotifs, comments] = await Promise.all([
         loadPendingInvitations(),
         loadPendingCoachingRequests(),
         Promise.resolve(getLocalNotifs()),
+        user ? loadUnreadComments(user.id) : Promise.resolve([]),
       ]);
 
-      if (invitations.length === 0 && coachReqs.length === 0 && localNotifs.length === 0) {
+      if (invitations.length === 0 && coachReqs.length === 0 && localNotifs.length === 0 && comments.length === 0) {
         listEl.innerHTML = `
           <div class="notif-empty">
             <div class="notif-empty-icon"><i data-lucide="bell-off"></i></div>
@@ -337,6 +385,12 @@
           </div>`;
         lucide.createIcons();
         return;
+      }
+
+      if (comments.length > 0) {
+        const ids = comments.map(c => c.id);
+        _supabase.from('session_comments').update({ read: true }).in('id', ids);
+        renderCommentNotifs(comments, previousSeenAt);
       }
 
       if (coachReqs.length > 0) {
@@ -358,10 +412,28 @@
       renderLocalNotifs(localNotifs);
       lucide.createIcons();
       markAllLocalRead();
+
+      // Timestamp "vu" — le badge ne comptera que les notifs arrivées après ça
+      localStorage.setItem('imaz_notifs_seen_at', new Date().toISOString());
     }
 
-    // Attendre que la session soit établie avant de charger les invitations
-    checkAuth().then(() => render());
+    function markRowRead(row) {
+      row.classList.remove('unread');
+      const dot = row.querySelector('.notif-dot');
+      if (dot) dot.remove();
+    }
+
+    function markAllRowsRead() {
+      document.querySelectorAll('.notif-row').forEach(markRowRead);
+    }
+
+    let _currentUser = null;
+    checkAuth().then((user) => { _currentUser = user; render(user); });
+
+    // Retour via bouton retour (bfcache) — nettoie visuellement sans re-fetcher
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) markAllRowsRead();
+    });
   </script>
 
 </body>

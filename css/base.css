@@ -197,3 +197,53 @@ header {
 
 .nav-btn.active { color: var(--accent); }
 
+/* ── COMMENT BLOCKS (athlete-profile + activites) ── */
+.comment-block {
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.comment-textarea {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.comment-textarea:focus { border-color: var(--accent); }
+
+.comment-send-btn:disabled { opacity: 0.5; }
+
+.comment-sent {
+  font-size: 12px;
+  color: #48c78e;
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+.comment-coach-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.comment-existing {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 8px 12px;
+}
+

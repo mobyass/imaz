@@ -14,6 +14,99 @@
   <link rel="stylesheet" href="css/home.css">
   <style>
     body { overflow-y: auto; height: auto; min-height: 100vh; padding-bottom: 40px; }
+
+    .session-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 0 16px 10px;
+    }
+
+    .session-card .profil-link-row {
+      border-radius: 0;
+      border: none;
+      margin: 0;
+    }
+
+    .comment-area {
+      border-top: 1px solid var(--border);
+      padding: 10px 14px 12px;
+    }
+
+    .comment-toggle-btn {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .comment-toggle-btn:hover { background: var(--accent-dim); color: var(--accent); }
+    .comment-toggle-btn svg  { width: 15px; height: 15px; }
+
+    /* Texte du commentaire — cliquer dessus pour éditer */
+    .comment-display {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4;
+      cursor: pointer;
+      background: var(--accent-dim);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 8px 12px;
+      user-select: text;
+      transition: filter 0.12s;
+    }
+
+    .comment-display:hover { filter: brightness(0.94); }
+
+    .comment-form { margin-top: 0; }
+
+    .comment-form-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .comment-cancel-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .comment-send-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 16px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .comment-send-btn:disabled { opacity: 0.5; }
+
+    .activites-month-label { padding-left: 16px; }
   </style>
 </head>
 <body>
@@ -110,7 +203,7 @@
         document.getElementById('session-view-overlay').classList.remove('open');
     });
 
-    checkAuth().then(async () => {
+    checkAuth().then(async (user) => {
       const list = document.getElementById('activites-list');
 
       if (!athleteId) {
@@ -129,7 +222,117 @@
         return;
       }
 
-      const todayKey = dateToKey(new Date());
+      const todayKey      = dateToKey(new Date());
+      const coachUsername = localStorage.getItem('imaz_profil_username') || '';
+
+      const { data: existingComments } = await _supabase
+        .from('session_comments')
+        .select('id, date_key, comment')
+        .eq('coach_id', user.id)
+        .eq('athlete_id', athleteId);
+      const commentMap = {};
+      (existingComments || []).forEach(c => { commentMap[c.date_key] = { id: c.id, comment: c.comment }; });
+
+      function existingHtml(key, text) {
+        return `
+          <div class="comment-display" id="cv-${key}" onclick="startEdit('${key}')">${text}</div>
+          <div class="comment-form" id="cf-${key}" style="display:none">
+            <textarea class="comment-textarea" rows="2">${text}</textarea>
+            <div class="comment-form-actions">
+              <button class="comment-cancel-btn" onclick="cancelComment('${key}')">Annuler</button>
+              <button class="comment-send-btn" onclick="submitComment('${key}')">Enregistrer</button>
+            </div>
+          </div>`;
+      }
+
+      function commentAreaHtml(key) {
+        const c = commentMap[key];
+        if (c) {
+          return `<div class="comment-area" id="ca-${key}">${existingHtml(key, c.comment)}</div>`;
+        }
+        return `
+          <div class="comment-area" id="ca-${key}">
+            <button class="comment-toggle-btn" onclick="toggleNew('${key}')">
+              <i data-lucide="message-circle"></i> Laisser un commentaire
+            </button>
+            <div class="comment-form" id="cf-${key}" style="display:none">
+              <textarea class="comment-textarea" rows="2" placeholder="Laisser un commentaire…"></textarea>
+              <div class="comment-form-actions">
+                <button class="comment-cancel-btn" onclick="cancelComment('${key}')">Annuler</button>
+                <button class="comment-send-btn" onclick="submitComment('${key}')">Envoyer</button>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      window.toggleNew = function(key) {
+        const form = document.getElementById(`cf-${key}`);
+        const visible = form.style.display !== 'none';
+        form.style.display = visible ? 'none' : '';
+        if (!visible) form.querySelector('textarea').focus();
+      };
+
+      window.startEdit = function(key) {
+        document.getElementById(`cv-${key}`).style.display = 'none';
+        const form = document.getElementById(`cf-${key}`);
+        form.querySelector('textarea').value = commentMap[key].comment;
+        form.style.display = '';
+        form.querySelector('textarea').focus();
+      };
+
+      window.cancelComment = function(key) {
+        document.getElementById(`cf-${key}`).style.display = 'none';
+        const cv = document.getElementById(`cv-${key}`);
+        if (cv) cv.style.display = '';
+      };
+
+      window.submitComment = async function(key) {
+        const form = document.getElementById(`cf-${key}`);
+        const text = form.querySelector('textarea').value.trim();
+        if (!text) return;
+        const btn = form.querySelector('.comment-send-btn');
+        btn.disabled = true;
+        btn.textContent = '…';
+
+        const existing = commentMap[key];
+        let error;
+
+        if (existing) {
+          // Supprimer puis réinsérer — contourne la restriction RLS UPDATE (athlete only)
+          await _supabase.from('session_comments').delete().eq('id', existing.id);
+          const res = await _supabase.from('session_comments').insert({
+            coach_id:       user.id,
+            coach_username: coachUsername,
+            athlete_id:     athleteId,
+            date_key:       key,
+            comment:        text,
+            read:           false
+          }).select('id').single();
+          error = res.error;
+          if (!res.error) commentMap[key] = { id: res.data.id, comment: text };
+        } else {
+          const res = await _supabase.from('session_comments').insert({
+            coach_id:       user.id,
+            coach_username: coachUsername,
+            athlete_id:     athleteId,
+            date_key:       key,
+            comment:        text,
+            read:           false
+          }).select('id').single();
+          error = res.error;
+          if (!res.error) commentMap[key] = { id: res.data.id, comment: text };
+        }
+
+        if (error) {
+          btn.disabled = false;
+          btn.textContent = existing ? 'Enregistrer' : 'Envoyer';
+          return;
+        }
+
+        const area = document.getElementById(`ca-${key}`);
+        area.innerHTML = existingHtml(key, commentMap[key].comment);
+        lucide.createIcons();
+      };
 
       function athleteRow(r) {
         const s   = r.data;
@@ -139,14 +342,17 @@
         const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
         const dataAttr = encodeURIComponent(JSON.stringify(s));
         return `
-          <div class="profil-link-row" style="cursor:pointer"
-               onclick="openAthleteSessionModal(JSON.parse(decodeURIComponent('${dataAttr}')), '${key}')">
-            <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
-            <div class="profil-link-info">
-              <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
-              <span class="profil-link-sub">${sub}</span>
+          <div class="session-card">
+            <div class="profil-link-row" style="cursor:pointer"
+                 onclick="openAthleteSessionModal(JSON.parse(decodeURIComponent('${dataAttr}')), '${key}')">
+              <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
+              <div class="profil-link-info">
+                <span class="profil-link-title">${formatDayLabel(key)}${badge}</span>
+                <span class="profil-link-sub">${sub}</span>
+              </div>
+              <i data-lucide="chevron-right" class="profil-link-arrow"></i>
             </div>
-            <i data-lucide="chevron-right" class="profil-link-arrow"></i>
+            ${commentAreaHtml(key)}
           </div>`;
       }
 
@@ -158,9 +364,7 @@
 
       if (future.length > 0) {
         html += `<div class="activites-month-label">À venir</div>`;
-        html += `<div class="profil-links activites-group">`;
         future.forEach(r => { html += athleteRow(r); });
-        html += `</div>`;
       }
 
       if (past.length > 0) {
@@ -175,9 +379,7 @@
           .forEach(([ym, entries]) => {
             const [y, m] = ym.split('-').map(Number);
             html += `<div class="activites-month-label">${MONTHS[m - 1]} ${y}</div>`;
-            html += `<div class="profil-links activites-group">`;
             entries.forEach(r => { html += athleteRow(r); });
-            html += `</div>`;
           });
       }
 
