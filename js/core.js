@@ -77,7 +77,7 @@ function getSessions() {
   return JSON.parse(localStorage.getItem('imaz_sessions') || '{}');
 }
 
-function persistSession(dateKey, exercises, emoms = []) {
+function persistSession(dateKey, exercises, emoms = [], cardios = []) {
   const all     = getSessions();
   const prev    = all[dateKey] || {};
   const prevExo = prev.exercises || [];
@@ -87,7 +87,7 @@ function persistSession(dateKey, exercises, emoms = []) {
     return (match && match.done) ? { ...ex, done: match.done } : ex;
   });
 
-  all[dateKey] = { ...prev, date: dateKey, exercises: merged, emoms, completed: false };
+  all[dateKey] = { ...prev, date: dateKey, exercises: merged, emoms, cardios, completed: false };
   localStorage.setItem('imaz_sessions', JSON.stringify(all));
   if (typeof syncSessionToSupabase === 'function') syncSessionToSupabase(dateKey, all[dateKey]);
 }

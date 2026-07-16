@@ -21,6 +21,10 @@ function openModal(dateKey) {
     existing.emoms.forEach(e => addEmom(e));
   }
 
+  if (existing && existing.cardios) {
+    existing.cardios.forEach(c => addCardio(c));
+  }
+
   document.getElementById('modal-overlay').classList.add('open');
   lucide.createIcons();
 }
@@ -289,6 +293,85 @@ function renumberSets(list) {
   list.querySelectorAll('.set-num').forEach((el, i) => el.textContent = `S${i + 1}`);
 }
 
+// ── CARDIO BLOCK ─────────────────────────────────────────
+function addCardio(data = {}) {
+  const container = document.getElementById('modal-exercises');
+  const block = document.createElement('div');
+  block.className = 'emom-block cardio-block';
+
+  const name     = data.name     || '';
+  const durMin   = data.durMin   ?? '';
+  const durSec   = data.durSec   ?? '';
+  const distance = data.distance ?? '';
+
+  block.innerHTML = `
+    <div class="emom-block-header">
+      <span class="emom-block-label"><i data-lucide="activity"></i> CARDIO</span>
+      <button class="exo-remove-btn cardio-remove-btn"><i data-lucide="trash-2"></i></button>
+    </div>
+    <div class="emom-exo-list">
+      <div class="emom-exo-row" style="align-items:flex-end">
+        <div class="emom-exo-fields" style="flex:1">
+          <div class="emom-exo-field" style="flex:2">
+            <span class="emom-exo-field-label">Activité</span>
+            <input class="emom-exo-name cardio-name" type="text" placeholder="Rameur, Course, Marche…" value="${name}" autocomplete="off">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="emom-block-settings">
+      <div class="emom-setting">
+        <span>Durée</span>
+        <div class="emom-counter">
+          <button class="emom-counter-btn cardio-min-minus">−</button>
+          <span class="emom-counter-val cardio-min-val">${durMin || 0}</span>
+          <span class="emom-counter-unit">min</span>
+          <button class="emom-counter-btn cardio-min-plus">+</button>
+        </div>
+      </div>
+      <div class="emom-setting">
+        <span>Secondes</span>
+        <div class="emom-counter">
+          <button class="emom-counter-btn cardio-sec-minus">−</button>
+          <span class="emom-counter-val cardio-sec-val">${durSec || 0}</span>
+          <span class="emom-counter-unit">s</span>
+          <button class="emom-counter-btn cardio-sec-plus">+</button>
+        </div>
+      </div>
+      <div class="emom-setting">
+        <span>Distance</span>
+        <div class="emom-counter">
+          <button class="emom-counter-btn cardio-dist-minus">−</button>
+          <span class="emom-counter-val cardio-dist-val">${distance || 0}</span>
+          <span class="emom-counter-unit">km</span>
+          <button class="emom-counter-btn cardio-dist-plus">+</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  block.querySelector('.cardio-remove-btn').addEventListener('click', () => block.remove());
+  block.querySelector('.cardio-name').addEventListener('input', function() {
+    this.classList.remove('input-error');
+  });
+
+  function makeCardioCounter(minusSel, plusSel, valSel, min, max, step) {
+    let v = parseFloat(block.querySelector(valSel).textContent) || 0;
+    block.querySelector(minusSel).addEventListener('click', () => {
+      if (v - step >= min) { v = Math.round((v - step) * 10) / 10; block.querySelector(valSel).textContent = v; }
+    });
+    block.querySelector(plusSel).addEventListener('click', () => {
+      if (v + step <= max) { v = Math.round((v + step) * 10) / 10; block.querySelector(valSel).textContent = v; }
+    });
+  }
+  makeCardioCounter('.cardio-min-minus', '.cardio-min-plus', '.cardio-min-val',   0, 600, 1);
+  makeCardioCounter('.cardio-sec-minus', '.cardio-sec-plus', '.cardio-sec-val',   0,  55, 5);
+  makeCardioCounter('.cardio-dist-minus','.cardio-dist-plus','.cardio-dist-val',  0, 200, 0.1);
+
+  container.appendChild(block);
+  lucide.createIcons();
+}
+
 // ── EMOM BLOCK ───────────────────────────────────────────
 function addEmom(data = {}) {
   const container = document.getElementById('modal-exercises');
@@ -455,8 +538,17 @@ function saveModal() {
     if (exoRows.length > 0) emoms.push({ interval, rounds, exercises: exoRows });
   });
 
+  const cardios = [];
+  document.querySelectorAll('.cardio-block').forEach(block => {
+    const name     = block.querySelector('.cardio-name').value.trim();
+    const durMin   = parseFloat(block.querySelector('.cardio-min-val').textContent)  || 0;
+    const durSec   = parseFloat(block.querySelector('.cardio-sec-val').textContent)  || 0;
+    const distance = parseFloat(block.querySelector('.cardio-dist-val').textContent) || null;
+    if (name) cardios.push({ name, durMin, durSec, distance });
+  });
+
   addToExoHistory(exercises.map(e => e.name));
-  persistSession(modalDateKey, exercises, emoms);
+  persistSession(modalDateKey, exercises, emoms, cardios);
   closeModal();
   renderWeek();
   refreshHome();
@@ -498,10 +590,26 @@ function openSessionViewModal(dateKey) {
   document.getElementById('session-view-date').textContent = formatLong(dateKey);
 
   const content = document.getElementById('session-view-content');
-  if (session.exercises.length === 0) {
+  const hasAnything = (session.exercises?.length || 0) + (session.emoms?.length || 0) + (session.cardios?.length || 0) > 0;
+  if (!hasAnything) {
     content.innerHTML = '<p class="empty-state">Aucun exercice enregistré</p>';
   } else {
-    content.innerHTML = session.exercises.map(e => {
+    let cardioHtml = (session.cardios || []).map(c => {
+      const dur = c.durMin || c.durSec
+        ? `${c.durMin || 0}min${c.durSec ? ` ${c.durSec}s` : ''}`
+        : null;
+      const dist = c.distance ? `${c.distance} km` : null;
+      const sub  = [dur, dist].filter(Boolean).join(' · ');
+      return `
+        <div class="seance-log-exo">
+          <div class="log-exo-name" style="display:flex;align-items:center;gap:6px">
+            <i data-lucide="activity" style="width:14px;height:14px;color:var(--accent)"></i>
+            ${c.name}
+          </div>
+          ${sub ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;padding:0 2px">${sub}</div>` : ''}
+        </div>`;
+    }).join('');
+    content.innerHTML = cardioHtml + session.exercises.map(e => {
       const sets = normalizeSets(e);
       return `
         <div class="seance-log-exo">
@@ -557,6 +665,7 @@ function finishSession(dateKey) {
   $on('btn-save',               'click', saveModal);
   $on('btn-add-exo',            'click', () => addExercise());
   $on('btn-add-emom',           'click', () => addEmom());
+  $on('btn-add-cardio',         'click', () => addCardio());
   $on('btn-delete-session',     'click', () => {
     document.getElementById('confirm-delete-date').textContent = formatLong(modalDateKey);
     document.getElementById('confirm-delete-overlay').classList.add('open');

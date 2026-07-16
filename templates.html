@@ -89,8 +89,11 @@
       <button class="btn-add-exo" id="btn-add-exo" style="flex:1">
         <i data-lucide="plus"></i> Exercice
       </button>
-      <button class="btn-add-exo" id="btn-add-emom" style="flex:1;background:var(--accent-dim);color:var(--accent);border-color:var(--accent)">
+      <button class="btn-add-exo" id="btn-add-emom" style="flex:1">
         <i data-lucide="timer"></i> EMOM
+      </button>
+      <button class="btn-add-exo" id="btn-add-cardio" style="flex:1">
+        <i data-lucide="activity"></i> Cardio
       </button>
     </div>
 
@@ -144,10 +147,11 @@
       const container = document.getElementById('modal-exercises');
       container.innerHTML = '';
 
-      const d = tpl ? parseTplData(tpl) : { exercises: [], emoms: [] };
-      if (d.exercises.length || d.emoms.length) {
+      const d = tpl ? parseTplData(tpl) : { exercises: [], emoms: [], cardios: [] };
+      if (d.exercises.length || d.emoms.length || d.cardios.length) {
         d.exercises.forEach(e => addExercise(e));
         d.emoms.forEach(e => addEmom(e));
+        d.cardios.forEach(c => addCardio(c));
       } else {
         addExercise();
       }
@@ -198,8 +202,8 @@
     // exercises column stocke {exercises:[...], emoms:[...]} ou [] (ancien format)
     function parseTplData(t) {
       const raw = t.exercises;
-      if (Array.isArray(raw)) return { exercises: raw, emoms: [] };
-      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [] };
+      if (Array.isArray(raw)) return { exercises: raw, emoms: [], cardios: [] };
+      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [], cardios: raw?.cardios || [] };
     }
 
     window.openTemplate = async function(id) {
@@ -280,12 +284,21 @@
         if (exoRows.length) emoms.push({ interval, rounds, exercises: exoRows });
       });
 
+      // Collecter les Cardios
+      const cardios = [];
+      document.querySelectorAll('.cardio-block').forEach(block => {
+        const name     = block.querySelector('.cardio-name').value.trim();
+        const durMin   = parseFloat(block.querySelector('.cardio-min-val').textContent)  || 0;
+        const durSec   = parseFloat(block.querySelector('.cardio-sec-val').textContent)  || 0;
+        const distance = parseFloat(block.querySelector('.cardio-dist-val').textContent) || null;
+        if (name) cardios.push({ name, durMin, durSec, distance });
+      });
+
       const btn = document.getElementById('btn-tpl-save');
       btn.disabled = true;
       btn.textContent = '…';
 
-      // Stocker exercises + emoms dans la colonne exercises
-      const payload = { exercises, emoms };
+      const payload = { exercises, emoms, cardios };
 
       let dbErr;
       if (_editingId) {

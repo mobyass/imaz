@@ -133,14 +133,19 @@
 
       <div id="modal-exercises"></div>
 
-      <div style="display:flex;gap:8px">
-        <button class="btn-add-exo" id="btn-add-exo" style="flex:1">
-          <i data-lucide="plus"></i> Exercice
-        </button>
-        <button class="btn-add-exo" id="btn-add-emom" style="flex:1">
-          <i data-lucide="timer"></i> EMOM
-        </button>
-        <button class="btn-add-exo" id="btn-from-template" style="flex:1;background:var(--surface-2)">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px">
+          <button class="btn-add-exo" id="btn-add-exo" style="flex:1">
+            <i data-lucide="plus"></i> Exercice
+          </button>
+          <button class="btn-add-exo" id="btn-add-emom" style="flex:1">
+            <i data-lucide="timer"></i> EMOM
+          </button>
+          <button class="btn-add-exo" id="btn-add-cardio" style="flex:1">
+            <i data-lucide="activity"></i> Cardio
+          </button>
+        </div>
+        <button class="btn-add-exo" id="btn-from-template" style="width:100%;background:var(--surface-2)">
           <i data-lucide="layout-template"></i> Template
         </button>
       </div>
@@ -294,8 +299,8 @@
 
     function parseTplData(t) {
       const raw = t.exercises;
-      if (Array.isArray(raw)) return { exercises: raw, emoms: [] };
-      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [] };
+      if (Array.isArray(raw)) return { exercises: raw, emoms: [], cardios: [] };
+      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [], cardios: raw?.cardios || [] };
     }
 
     function applyAllTemplates() {
@@ -306,6 +311,7 @@
         const d = parseTplData(t);
         d.exercises.forEach(e => addExercise(e));
         d.emoms.forEach(e => addEmom(e));
+        d.cardios.forEach(c => addCardio(c));
       });
       lucide.createIcons();
     }
@@ -317,6 +323,7 @@
       const d = parseTplData(_tplList[idx]);
       d.exercises.forEach(e => addExercise(e));
       d.emoms.forEach(e => addEmom(e));
+      d.cardios.forEach(c => addCardio(c));
       lucide.createIcons();
     }
 
