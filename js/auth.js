@@ -8,7 +8,7 @@
 async function checkAuth() {
   const { data: { session } } = await _supabase.auth.getSession();
   if (!session) {
-    window.location.href = 'login.html';
+    window.location.href = 'landing.html';
     return null;
   }
   return session.user;
@@ -169,7 +169,7 @@ async function startRealtimeSync() {
 
 // ── INVITATIONS ───────────────────────────────────────────
 
-async function sendInvitation({ recipientId, dateKey, exercises }) {
+async function sendInvitation({ recipientId, dateKey, exercises, emoms = [], cardios = [] }) {
   const { data: { user } } = await _supabase.auth.getUser();
   if (!user) return { error: 'Non connecté' };
   const { error } = await _supabase.from('session_invitations').insert({
@@ -178,7 +178,7 @@ async function sendInvitation({ recipientId, dateKey, exercises }) {
     sender_username: localStorage.getItem('imaz_profil_username') || '',
     recipient_id:    recipientId,
     date_key:        dateKey,
-    session_data:    { exercises },
+    session_data:    { exercises, emoms, cardios },
   });
   return { error };
 }
@@ -263,5 +263,5 @@ async function logout() {
   localStorage.removeItem('imaz_profil_name');
   localStorage.removeItem('imaz_profil_photo');
   localStorage.removeItem('imaz_profil_username');
-  window.location.href = 'login.html';
+  window.location.href = 'landing.html';
 }

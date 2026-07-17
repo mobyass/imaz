@@ -320,9 +320,22 @@
   </div>
 
   <div class="btn-add-exo-wrap">
-    <button class="btn-add-exo" id="btn-add-exo">
-      <i data-lucide="plus"></i> Ajouter un exercice
-    </button>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:8px">
+        <button class="btn-add-exo" id="btn-add-exo" style="flex:1">
+          <i data-lucide="plus"></i> Exercice
+        </button>
+        <button class="btn-add-exo" id="btn-add-emom" style="flex:1">
+          <i data-lucide="timer"></i> EMOM
+        </button>
+        <button class="btn-add-exo" id="btn-add-cardio" style="flex:1">
+          <i data-lucide="activity"></i> Cardio
+        </button>
+      </div>
+      <button class="btn-add-exo" id="btn-from-template" style="width:100%;background:var(--surface-2)">
+        <i data-lucide="layout-template"></i> Template
+      </button>
+    </div>
   </div>
 
   <p class="modal-error share-error" id="modal-save-error" hidden></p>
@@ -331,6 +344,25 @@
     <button class="btn-primary" id="btn-share">
       <i data-lucide="send"></i> Partager
     </button>
+  </div>
+
+  <!-- ── TEMPLATE PICKER ── -->
+  <div class="modal-overlay" id="tpl-picker-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Choisir un template</h3>
+        <button class="modal-close" id="tpl-picker-close"><i data-lucide="x"></i></button>
+      </div>
+      <div id="tpl-picker-list" style="padding:8px 12px 4px;display:flex;flex-direction:column;gap:6px"></div>
+      <div style="display:flex;gap:8px;padding:10px 12px 14px">
+        <button class="btn-secondary" style="flex:1" onclick="window.location.href='templates.html'">
+          <i data-lucide="layout-template"></i> Mes templates
+        </button>
+        <button class="btn-primary" style="flex:1" onclick="window.location.href='templates.html?new=1'">
+          <i data-lucide="plus"></i> Nouveau
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ── DATE PICKER OVERLAY ── -->
@@ -404,8 +436,6 @@
     }
     updateDateDisplay();
 
-    // ── INIT EXERCISE ──────────────────────────────────────
-    addExercise();
     lucide.createIcons();
 
     // ── DATE PICKER ────────────────────────────────────────
@@ -478,8 +508,8 @@
       dpOverlay.classList.remove('open');
     });
 
-    // ── COLLECT EXERCISES (same logic as saveModal) ────────
-    function collectExercises() {
+    // ── COLLECT SESSION DATA ───────────────────────────────
+    function collectSessionData() {
       const settings  = getSettings();
       const exercises = [];
       let   hasError  = false;
@@ -530,14 +560,93 @@
         if (name && sets.length > 0) exercises.push({ name, bodyweight: false, sets });
       });
 
-      return exercises;
+      const emoms = [];
+      document.querySelectorAll('.emom-block').forEach(block => {
+        const interval = parseInt(block.querySelector('.emom-int-val').textContent)    || 60;
+        const rounds   = parseInt(block.querySelector('.emom-rounds-val').textContent) || 10;
+        const exoRows  = [];
+        block.querySelectorAll('.emom-exo-row').forEach(row => {
+          const n = row.querySelector('.emom-exo-name').value.trim();
+          const r = parseInt(row.querySelector('.emom-exo-reps').value) || 0;
+          if (n) exoRows.push({ name: n, reps: r });
+        });
+        if (exoRows.length) emoms.push({ interval, rounds, exercises: exoRows });
+      });
+
+      const cardios = [];
+      document.querySelectorAll('.cardio-block').forEach(block => {
+        const name     = block.querySelector('.cardio-name').value.trim();
+        const durMin   = parseFloat(block.querySelector('.cardio-min-val').textContent)  || 0;
+        const durSec   = parseFloat(block.querySelector('.cardio-sec-val').textContent)  || 0;
+        const distance = parseFloat(block.querySelector('.cardio-dist-val').textContent) || null;
+        if (name) cardios.push({ name, durMin, durSec, distance });
+      });
+
+      return { exercises, emoms, cardios };
     }
+
+    // ── TEMPLATE PICKER ───────────────────────────────────
+    var _tplList = [];
+
+    function parseTplData(t) {
+      const raw = t.exercises;
+      if (Array.isArray(raw)) return { exercises: raw, emoms: [], cardios: [] };
+      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [], cardios: raw?.cardios || [] };
+    }
+
+    function closeTplPicker() {
+      document.getElementById('tpl-picker-overlay').classList.remove('open');
+    }
+
+    function applyTpl(idx) {
+      closeTplPicker();
+      const container = document.getElementById('modal-exercises');
+      container.innerHTML = '';
+      const d = parseTplData(_tplList[idx]);
+      d.exercises.forEach(e => addExercise(e));
+      d.emoms.forEach(e => addEmom(e));
+      d.cardios.forEach(c => addCardio(c));
+      lucide.createIcons();
+    }
+
+    document.getElementById('btn-from-template').addEventListener('click', async () => {
+      const { data: { user } } = await _supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: tpls } = await _supabase
+        .from('workout_templates')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+      _tplList = tpls || [];
+      const list = document.getElementById('tpl-picker-list');
+
+      if (!_tplList.length) {
+        list.innerHTML = `<p style="padding:16px 4px;color:var(--text-muted);font-size:14px">Aucun template.</p>`;
+      } else {
+        list.innerHTML = _tplList.map((t, i) => `
+          <button class="btn-secondary" style="width:100%;justify-content:center" onclick="applyTpl(${i})">
+            ${t.name}
+          </button>`).join('');
+      }
+
+      document.getElementById('tpl-picker-overlay').classList.add('open');
+      lucide.createIcons();
+    });
+
+    document.getElementById('tpl-picker-close').addEventListener('click', closeTplPicker);
+    document.getElementById('tpl-picker-overlay').addEventListener('click', e => {
+      if (e.target.id === 'tpl-picker-overlay') closeTplPicker();
+    });
 
     // ── SEARCH OVERLAY ────────────────────────────────────
     const searchOlOverlay = document.getElementById('search-ol-overlay');
     const searchOlInput   = document.getElementById('search-ol-input');
     const searchOlResults = document.getElementById('search-ol-results');
     let   pendingExercises = null;
+    let   pendingEmoms     = null;
+    let   pendingCardios   = null;
     let   selectedUser    = null;
     let   pratiquantsCache = null;
 
@@ -645,6 +754,8 @@
         recipientId: selectedUser.id,
         dateKey:     selectedDateKey,
         exercises:   pendingExercises,
+        emoms:       pendingEmoms,
+        cardios:     pendingCardios,
       });
 
       confirmOlOverlay.classList.remove('open');
@@ -673,10 +784,12 @@
 
     // ── SHARE BUTTON ───────────────────────────────────────
     document.getElementById('btn-share').addEventListener('click', async () => {
-      const exercises = collectExercises();
-      if (!exercises) return;
+      const sessionData = collectSessionData();
+      if (!sessionData) return;
 
-      pendingExercises = exercises;
+      pendingExercises = sessionData.exercises;
+      pendingEmoms     = sessionData.emoms;
+      pendingCardios   = sessionData.cardios;
 
       // Si athlète pré-sélectionné, ouvrir directement la confirmation
       if (selectedUser) {
