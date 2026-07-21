@@ -199,7 +199,7 @@ function renderSeancesDuJour() {
             ${isDone ? '<span class="log-emom-done-badge"><i data-lucide="check-circle"></i> Terminé</span>' : ''}
           </div>
           <div class="log-emom-exos">
-            ${(em.exercises || []).map(ex => `<div class="log-emom-exo">• ${ex.name}${ex.reps ? ` × ${ex.reps}` : ''}</div>`).join('')}
+            ${(em.exercises || []).map(ex => `<div class="log-emom-exo">• ${esc(ex.name)}${ex.reps ? ` × ${ex.reps}` : ''}</div>`).join('')}
           </div>
           ${!isDone ? `
           <div class="log-emom-runner" style="display:none">
@@ -221,7 +221,7 @@ function renderSeancesDuJour() {
           return `
             <div class="seance-log-exo" data-exo="${ei}">
               <div class="log-exo-header">
-                <div class="log-exo-name">${e.name}</div>
+                <div class="log-exo-name">${esc(e.name)}</div>
               </div>
               <div class="${logTableClass}">
                 <div class="log-table-head">

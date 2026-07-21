@@ -2,6 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
+    font-src 'self' data:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
@@ -280,7 +292,7 @@
     // ── COACHING REQUEST CARD ───────────────────────────────
     function renderCoachingCard(req) {
       const senderName = req.sender_name || req.sender_username || 'Quelqu\'un';
-      const pseudo     = req.sender_username ? `@${req.sender_username}` : '';
+      const pseudo     = req.sender_username ? `@${esc(req.sender_username)}` : '';
 
       const card = document.createElement('div');
       card.className = 'invite-card';
@@ -350,8 +362,8 @@
         row.innerHTML = `
           <div class="notif-icon"><i data-lucide="message-circle"></i></div>
           <div class="notif-body">
-            <span class="notif-title">@${c.coach_username} a commenté ta séance</span>
-            <span class="notif-sub">${dateStr} · "${c.comment.length > 60 ? c.comment.slice(0, 60) + '…' : c.comment}"</span>
+            <span class="notif-title">@${esc(c.coach_username)} a commenté ta séance</span>
+            <span class="notif-sub">${dateStr} · "${esc(c.comment.length > 60 ? c.comment.slice(0, 60) + '…' : c.comment)}"</span>
           </div>
           ${isNew ? '<div class="notif-dot"></div>' : ''}`;
         row.addEventListener('click', () => {

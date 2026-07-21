@@ -129,7 +129,7 @@ function addExercise(data = {}) {
     <div class="exo-item-header">
       <div class="exo-name-wrap">
         <label class="exo-name-label">Exercice</label>
-        <input type="text" class="exo-name-input" placeholder="Nom de l'exercice" value="${data.name || ''}" autocomplete="off">
+        <input type="text" class="exo-name-input" placeholder="Nom de l'exercice" value="${esc(data.name || '')}" autocomplete="off">
         <div class="exo-sugg-dropdown" style="display:none"></div>
       </div>
       <button class="exo-remove-btn"><i data-lucide="trash-2"></i></button>
@@ -418,7 +418,7 @@ function addEmom(data = {}) {
       <div class="emom-exo-fields">
         <div class="emom-exo-field">
           <span class="emom-exo-field-label">Exercice</span>
-          <input class="emom-exo-name" type="text" placeholder="Nom de l'exercice" value="${name}" autocomplete="off">
+          <input class="emom-exo-name" type="text" placeholder="Nom de l'exercice" value="${esc(name)}" autocomplete="off">
         </div>
         <div class="emom-exo-field emom-exo-field--reps">
           <span class="emom-exo-field-label">Répétitions</span>
@@ -604,7 +604,7 @@ function openSessionViewModal(dateKey) {
         <div class="seance-log-exo">
           <div class="log-exo-name" style="display:flex;align-items:center;gap:6px">
             <i data-lucide="activity" style="width:14px;height:14px;color:var(--accent)"></i>
-            ${c.name}
+            ${esc(c.name)}
           </div>
           ${sub ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;padding:0 2px">${sub}</div>` : ''}
         </div>`;
@@ -613,7 +613,7 @@ function openSessionViewModal(dateKey) {
       const sets = normalizeSets(e);
       return `
         <div class="seance-log-exo">
-          <div class="log-exo-name">${e.name}</div>
+          <div class="log-exo-name">${esc(e.name)}</div>
           <div class="log-table log-table--readonly">
             <div class="log-table-head">
               <span></span><span>Rép</span><span>${settings.weightUnit}</span>

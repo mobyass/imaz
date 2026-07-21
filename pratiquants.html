@@ -2,6 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
+    font-src 'self' data:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
@@ -165,8 +177,8 @@
         const info = document.createElement('div');
         info.className = 'prat-info';
         info.innerHTML = `
-          <div class="prat-name">${p.name || p.username || '—'}</div>
-          <div class="prat-username">@${p.username || ''}</div>`;
+          <div class="prat-name">${esc(p.name || p.username || '—')}</div>
+          <div class="prat-username">@${esc(p.username || '')}</div>`;
 
         row.appendChild(avatar);
         row.appendChild(info);

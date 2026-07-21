@@ -2,6 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
+    font-src 'self' data:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
@@ -627,7 +639,7 @@
       } else {
         list.innerHTML = _tplList.map((t, i) => `
           <button class="btn-secondary" style="width:100%;justify-content:center" onclick="applyTpl(${i})">
-            ${t.name}
+            ${esc(t.name)}
           </button>`).join('');
       }
 
@@ -706,8 +718,8 @@
         const info = document.createElement('div');
         info.className = 'search-ol-info';
         info.innerHTML = `
-          <div class="search-ol-name">${p.name || p.username}</div>
-          <div class="search-ol-username">@${p.username}</div>`;
+          <div class="search-ol-name">${esc(p.name || p.username)}</div>
+          <div class="search-ol-username">@${esc(p.username)}</div>`;
 
         row.appendChild(avatar);
         row.appendChild(info);
@@ -736,7 +748,7 @@
       const dateStr = formatLong(selectedDateKey);
       const name    = selectedUser.name || `@${selectedUser.username}`;
       document.getElementById('confirm-ol-desc').innerHTML =
-        `Envoyer la séance du <strong>${dateStr}</strong> à <strong>${name}</strong> (@${selectedUser.username}) ?`;
+        `Envoyer la séance du <strong>${esc(dateStr)}</strong> à <strong>${esc(name)}</strong> (@${esc(selectedUser.username)}) ?`;
       confirmOlOverlay.classList.add('open');
       lucide.createIcons();
     }
@@ -817,7 +829,7 @@
           <div class="share-success-icon"><i data-lucide="check-circle"></i></div>
           <h3>Séance envoyée !</h3>
           <p>
-            <strong>${selectedUser.name || '@' + selectedUser.username}</strong> a reçu
+            <strong>${esc(selectedUser.name || '@' + selectedUser.username)}</strong> a reçu
             la séance du ${formatLong(selectedDateKey)}.
           </p>
           <button class="btn-primary" onclick="history.back()" style="margin-top:8px">

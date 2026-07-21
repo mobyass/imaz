@@ -2,6 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
+    font-src 'self' data:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
@@ -125,7 +137,7 @@
     <div class="settings-section" style="margin-top:8px">
       <h3 class="settings-section-title">Suggestions</h3>
       <div style="padding:0 16px 16px">
-        <textarea id="feedback-text" placeholder="Une idée, un bug, une amélioration…" rows="4"
+        <textarea id="feedback-text" placeholder="Une idée, un bug, une amélioration…" rows="4" maxlength="1000"
           style="width:100%;box-sizing:border-box;background:var(--surface-2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:14px;color:var(--text);resize:vertical;font-family:inherit;outline:none;display:block;transition:border-color 0.15s"
           onfocus="this.style.borderColor='var(--accent)'"
           onblur="this.style.borderColor='var(--border)'"></textarea>

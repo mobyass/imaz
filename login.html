@@ -2,6 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
+    font-src 'self' data:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
@@ -214,7 +226,7 @@
       <!-- Pseudo (inscription uniquement) -->
       <div class="login-field" id="field-username" style="display:none">
         <input class="login-input no-icon" type="text" id="input-username"
-               placeholder="Pseudo (unique)" autocomplete="username">
+               placeholder="Pseudo (unique)" autocomplete="username" maxlength="30">
       </div>
 
       <!-- Email -->
@@ -308,8 +320,48 @@
     makeEyeToggle('toggle-confirm', confirmInput);
 
 
+    // ── Rate limiting (5 tentatives → 5 min de blocage) ──────
+    const RL_KEY      = 'armaz_login_rl';
+    const RL_MAX      = 5;
+    const RL_WINDOW   = 10 * 60 * 1000; // 10 min
+    const RL_LOCKOUT  = 5  * 60 * 1000; // 5 min
+
+    function getRLState() {
+      try { return JSON.parse(localStorage.getItem(RL_KEY)) || { attempts: [], lockedUntil: 0 }; }
+      catch { return { attempts: [], lockedUntil: 0 }; }
+    }
+    function saveRLState(s) { localStorage.setItem(RL_KEY, JSON.stringify(s)); }
+
+    function checkRateLimit() {
+      const s   = getRLState();
+      const now = Date.now();
+      if (s.lockedUntil > now) {
+        const secs = Math.ceil((s.lockedUntil - now) / 1000);
+        const m    = Math.floor(secs / 60), sc = secs % 60;
+        errEl.textContent = `Trop de tentatives. Réessaie dans ${m}:${String(sc).padStart(2,'0')}.`;
+        return false;
+      }
+      s.attempts = s.attempts.filter(t => now - t < RL_WINDOW);
+      saveRLState(s);
+      return true;
+    }
+
+    function recordFailedAttempt() {
+      const s   = getRLState();
+      const now = Date.now();
+      s.attempts.push(now);
+      s.attempts = s.attempts.filter(t => now - t < RL_WINDOW);
+      if (s.attempts.length >= RL_MAX) s.lockedUntil = now + RL_LOCKOUT;
+      saveRLState(s);
+    }
+
+    function clearRateLimit() {
+      localStorage.removeItem(RL_KEY);
+    }
+
     // ── Submit ──
     btnSubmit.addEventListener('click', async () => {
+      if (!checkRateLimit()) return;
       const email    = document.getElementById('input-email').value.trim();
       const password = pwInput.value;
       const confirm  = confirmInput.value;
@@ -364,14 +416,19 @@
       if (mode === 'login') {
         const { error } = await _supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          const msg = error.message.includes('Email not confirmed')
-            ? 'Email non confirmé. Désactive la confirmation dans Supabase.'
-            : 'Email ou mot de passe incorrect.';
+          recordFailedAttempt();
+          const s = getRLState();
+          const msg = s.lockedUntil > Date.now()
+            ? `Trop de tentatives. Compte bloqué 5 minutes.`
+            : error.message.includes('Email not confirmed')
+              ? 'Email non confirmé. Désactive la confirmation dans Supabase.'
+              : 'Email ou mot de passe incorrect.';
           errEl.textContent = msg;
           btnSubmit.disabled = false;
           btnSubmit.textContent = 'Se connecter';
           return;
         }
+        clearRateLimit();
       } else {
         // Passe pseudo + rôle en métadonnées → le trigger DB crée le profil automatiquement
         const { data: signupData, error } = await _supabase.auth.signUp({

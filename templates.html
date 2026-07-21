@@ -2,6 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
+    font-src 'self' data:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
@@ -188,7 +200,7 @@
         <div class="profil-link-row" onclick="openTemplate('${t.id}')">
           <div class="profil-link-icon"><i data-lucide="dumbbell"></i></div>
           <div class="profil-link-info">
-            <span class="profil-link-title">${t.name}</span>
+            <span class="profil-link-title">${esc(t.name)}</span>
             <span class="profil-link-sub">${sub}</span>
           </div>
           <button class="icon-btn" style="color:var(--text-muted)" onclick="event.stopPropagation();deleteTemplate('${t.id}')">

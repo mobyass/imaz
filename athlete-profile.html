@@ -2,6 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
+    font-src 'self' data:;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
   <link rel="shortcut icon" href="favicon.ico">
@@ -168,7 +180,7 @@
           const sets = normalizeSets(e);
           return `
             <div class="seance-log-exo">
-              <div class="log-exo-name">${e.name}</div>
+              <div class="log-exo-name">${esc(e.name)}</div>
               <div class="log-table log-table--readonly">
                 <div class="log-table-head">
                   <span></span><span>Rép</span><span>${settings.weightUnit}</span>
@@ -235,9 +247,9 @@
 
       function existingHtml(key, text) {
         return `
-          <div class="comment-display" id="cv-${key}" onclick="startEdit('${key}')">${text}</div>
+          <div class="comment-display" id="cv-${key}" onclick="startEdit('${key}')">${esc(text)}</div>
           <div class="comment-form" id="cf-${key}" style="display:none">
-            <textarea class="comment-textarea" rows="2">${text}</textarea>
+            <textarea class="comment-textarea" rows="2" maxlength="500">${esc(text)}</textarea>
             <div class="comment-form-actions">
               <button class="comment-cancel-btn" onclick="cancelComment('${key}')">Annuler</button>
               <button class="comment-send-btn" onclick="submitComment('${key}')">Enregistrer</button>
@@ -256,7 +268,7 @@
               <i data-lucide="message-circle"></i> Laisser un commentaire
             </button>
             <div class="comment-form" id="cf-${key}" style="display:none">
-              <textarea class="comment-textarea" rows="2" placeholder="Laisser un commentaire…"></textarea>
+              <textarea class="comment-textarea" rows="2" maxlength="500" placeholder="Laisser un commentaire…"></textarea>
               <div class="comment-form-actions">
                 <button class="comment-cancel-btn" onclick="cancelComment('${key}')">Annuler</button>
                 <button class="comment-send-btn" onclick="submitComment('${key}')">Envoyer</button>
