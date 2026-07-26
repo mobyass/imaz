@@ -5,10 +5,10 @@
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
-    style-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
     img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
-    font-src 'self' data:;
+    font-src 'self' data: https://fonts.gstatic.com;
     frame-src 'none';
     object-src 'none';
     base-uri 'self';
@@ -294,7 +294,7 @@
     Tu peux aussi utiliser ARMAZ directement depuis ton navigateur, sans rien installer.
   </div>
 
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
   <script>
     lucide.createIcons();
 
