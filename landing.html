@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co;
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://*.supabase.co https://va.vercel-scripts.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+    connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co https://va.vercel-scripts.com;
     img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
     font-src 'self' data: https://fonts.gstatic.com;
     frame-src 'none';
@@ -525,5 +525,6 @@
     cards.forEach(c => io.observe(c));
   </script>
 
+  <script defer src="https://va.vercel-scripts.com/v1/script.js"></script>
 </body>
 </html>
