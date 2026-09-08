@@ -304,32 +304,31 @@
 
     checkAuth().then(async () => {
       // Retour depuis Stripe → rafraîchir le plan
-      if (new URLSearchParams(location.search).get('checkout') === 'success') {
+      const params = new URLSearchParams(location.search);
+      if (params.get('checkout') === 'success') {
+        const sessionId = params.get('session_id');
         history.replaceState({}, '', location.pathname);
-        const { data: { user } } = await _supabase.auth.getUser();
-        if (user) {
-          let plan = 'free';
-          for (let i = 0; i < 5; i++) {
-            const { data } = await _supabase
-              .from('profiles')
-              .select('plan')
-              .eq('user_id', user.id)
-              .maybeSingle();
-            if (data?.plan === 'pro') { plan = 'pro'; break; }
-            await new Promise(r => setTimeout(r, 1500));
-          }
-          localStorage.setItem('imaz_plan', plan);
-          if (plan === 'pro') {
-            const t = document.createElement('div');
-            t.textContent = '🎉 Bienvenue dans Pro !';
-            Object.assign(t.style, {
-              position:'fixed', bottom:'80px', left:'50%', transform:'translateX(-50%)',
-              background:'var(--accent)', color:'#fff', padding:'10px 20px',
-              borderRadius:'12px', fontWeight:'700', fontSize:'14px',
-              zIndex:'9999', boxShadow:'0 4px 16px rgba(0,0,0,0.2)'
+        if (sessionId) {
+          try {
+            const { data: json } = await _supabase.functions.invoke('verify-checkout', {
+              body: { session_id: sessionId },
             });
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 4000);
+            const plan = json?.plan || 'free';
+            localStorage.setItem('imaz_plan', plan);
+            if (plan === 'pro') {
+              const t = document.createElement('div');
+              t.textContent = 'Bienvenue dans Pro !';
+              Object.assign(t.style, {
+                position:'fixed', bottom:'80px', left:'50%', transform:'translateX(-50%)',
+                background:'var(--accent)', color:'#fff', padding:'10px 20px',
+                borderRadius:'12px', fontWeight:'700', fontSize:'14px',
+                zIndex:'9999', boxShadow:'0 4px 16px rgba(0,0,0,0.2)'
+              });
+              document.body.appendChild(t);
+              setTimeout(() => t.remove(), 4000);
+            }
+          } catch (e) {
+            console.error('verify-checkout failed:', e);
           }
         }
       }
