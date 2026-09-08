@@ -145,7 +145,7 @@ function addExercise(data = {}) {
         <div class="exo-field">
           <label>Rép</label>
           <input type="number" min="1" class="exo-reps" placeholder="10"
-            value="${sets.length > 0 ? sets[0].reps : ''}">
+            value="${sets.length > 0 ? (sets[0].reps || '') : ''}">
         </div>
         <div class="exo-field">
           <label>Poids (${wUnit})</label>
@@ -269,7 +269,7 @@ function addSetRow(list, repsVal, restValSec, weightVal, isBodyweight) {
   row.innerHTML = `
     <span class="set-num">S${num}</span>
     <div class="set-field">
-      <input type="number" min="0" class="set-reps" placeholder="rép" value="${repsVal ?? ''}">
+      <input type="number" min="0" class="set-reps" placeholder="rép" value="${repsVal || ''}">
       <span>rép</span>
     </div>
     <div class="set-field set-weight-col">
@@ -526,13 +526,13 @@ function saveModal() {
   }
 
   const emoms = [];
-  document.querySelectorAll('.emom-block').forEach(block => {
+  document.querySelectorAll('.emom-block:not(.cardio-block)').forEach(block => {
     const interval = parseInt(block.querySelector('.emom-int-val').textContent)    || 60;
     const rounds   = parseInt(block.querySelector('.emom-rounds-val').textContent) || 10;
     const exoRows  = [];
     block.querySelectorAll('.emom-exo-row').forEach(row => {
       const name = row.querySelector('.emom-exo-name').value.trim();
-      const reps = parseInt(row.querySelector('.emom-exo-reps').value) || 0;
+      const reps = parseInt(row.querySelector('.emom-exo-reps')?.value) || 0;
       if (name) exoRows.push({ name, reps });
     });
     if (exoRows.length > 0) emoms.push({ interval, rounds, exercises: exoRows });

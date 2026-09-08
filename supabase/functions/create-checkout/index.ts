@@ -6,8 +6,8 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
 });
 
 const PRICES: Record<string, string> = {
-  monthly: 'price_1UCZkGDS5xnAYbxUJgCtOyHY',
-  yearly:  'price_1UCZkKDS5xnAYbxUzTEBgYMT',
+  monthly: 'price_1UDNmPDS5xnAYbxUohOKIDVQ',
+  yearly:  'price_1UDNngDS5xnAYbxUhXxpl3IA',
 };
 
 const APP_URL = Deno.env.get('APP_URL') || 'https://armaz25.vercel.app';

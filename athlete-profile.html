@@ -130,7 +130,7 @@
     <div style="width:38px"></div>
   </header>
 
-  <div class="activites-list" id="activites-list">
+<div class="activites-list" id="activites-list">
     <p style="padding:24px;color:var(--text-muted);text-align:center">Chargement…</p>
   </div>
 
@@ -173,11 +173,33 @@
 
       const content    = document.getElementById('session-view-content');
       const exercises  = data.exercises || [];
+      const emoms      = data.emoms     || [];
+      const cardios    = data.cardios   || [];
 
-      if (exercises.length === 0) {
+      if (exercises.length === 0 && emoms.length === 0 && cardios.length === 0) {
         content.innerHTML = '<p class="empty-state">Aucun exercice enregistré</p>';
       } else {
-        content.innerHTML = exercises.map(e => {
+        const cardioHtml = cardios.map(c => {
+          const dur  = (c.durMin || c.durSec) ? `${c.durMin || 0}min${c.durSec ? ` ${c.durSec}s` : ''}` : null;
+          const dist = c.distance ? `${c.distance} km` : null;
+          const sub  = [dur, dist].filter(Boolean).join(' · ');
+          return `<div class="seance-log-exo">
+            <div class="log-exo-name" style="display:flex;align-items:center;gap:6px">
+              <i data-lucide="activity" style="width:14px;height:14px;color:var(--accent)"></i>${esc(c.name)}
+            </div>
+            ${sub ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px">${sub}</div>` : ''}
+          </div>`;
+        }).join('');
+        const emomHtml = emoms.map(em => {
+          const exoList = (em.exercises || []).map(e => `<div style="font-size:13px;color:var(--text-muted)">${esc(e.name)}${e.reps ? ` × ${e.reps}` : ''}</div>`).join('');
+          return `<div class="seance-log-exo">
+            <div class="log-exo-name" style="display:flex;align-items:center;gap:6px">
+              <i data-lucide="timer" style="width:14px;height:14px;color:var(--accent)"></i>EMOM ${em.interval}s × ${em.rounds} tours
+            </div>
+            <div style="margin-top:6px;padding-left:4px">${exoList}</div>
+          </div>`;
+        }).join('');
+        content.innerHTML = cardioHtml + emomHtml + exercises.map(e => {
           const sets = normalizeSets(e);
           return `
             <div class="seance-log-exo">
@@ -216,7 +238,7 @@
         document.getElementById('session-view-overlay').classList.remove('open');
     });
 
-    checkAuth().then(async (user) => {
+checkAuth().then(async (user) => {
       const list = document.getElementById('activites-list');
 
       if (!athleteId) {
@@ -405,6 +427,7 @@
 
       list.innerHTML = html;
       lucide.createIcons();
+
     });
   </script>
 

@@ -388,7 +388,7 @@
 
         <div>
           <div class="price-row">
-            <span class="price-big" id="price-amount">9,99</span>
+            <span class="price-big" id="price-amount">4,99</span>
             <span class="price-symbol">€</span>
           </div>
           <div class="price-caption" id="price-caption">par mois — résiliable à tout moment</div>
@@ -519,10 +519,10 @@
       document.getElementById('btn-monthly').classList.toggle('active', type === 'monthly');
       document.getElementById('btn-yearly').classList.toggle('active',  type === 'yearly');
       if (type === 'yearly') {
-        document.getElementById('price-amount').textContent  = '7,99';
-        document.getElementById('price-caption').innerHTML   = 'par mois · <strong style="color:var(--accent)">95,88 € / an</strong> · 2 mois offerts';
+        document.getElementById('price-amount').textContent  = '3,33';
+        document.getElementById('price-caption').innerHTML   = 'par mois · <strong style="color:var(--accent)">39,99 € / an</strong> · −33%';
       } else {
-        document.getElementById('price-amount').textContent  = '9,99';
+        document.getElementById('price-amount').textContent  = '4,99';
         document.getElementById('price-caption').textContent = 'par mois — résiliable à tout moment';
       }
     }

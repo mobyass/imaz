@@ -88,6 +88,18 @@
       padding: 5px 12px;
       cursor: pointer;
     }
+    .prat-remove-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .prat-remove-btn:hover { color: #e53e3e; background: rgba(229,62,62,0.08); }
 
     .prat-empty {
       display: flex;
@@ -108,6 +120,23 @@
     }
     .prat-empty-icon svg { width: 26px; height: 26px; }
     .prat-empty p { font-size: 14px; text-align: center; margin: 0; }
+
+    /* Modale */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1100; opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; width: calc(100% - 32px);
+      max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .modal-header h3 { font-size: 16px; font-weight: 700; margin: 0; }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; }
+    .modal-close svg { width: 18px; height: 18px; }
   </style>
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
@@ -123,6 +152,23 @@
     <p style="padding:24px;color:var(--text-muted);text-align:center">Chargement…</p>
   </div>
 
+  <!-- CONFIRM RETIRER ATHLÈTE -->
+  <div class="modal-overlay" id="confirm-remove-overlay" style="z-index:1100">
+    <div class="modal" style="max-width:340px">
+      <div class="modal-header">
+        <h3>Retirer l'athlète</h3>
+        <button class="modal-close" id="confirm-remove-cancel"><i data-lucide="x"></i></button>
+      </div>
+      <p style="font-size:14px;color:var(--text-muted);padding:0 0 16px">
+        Retirer <strong id="confirm-remove-name"></strong> de ta liste ? Tu ne pourras plus voir ses séances.
+      </p>
+      <div style="display:flex;gap:10px">
+        <button class="btn-secondary" id="confirm-remove-cancel2" style="flex:1">Annuler</button>
+        <button class="btn-primary" id="confirm-remove-ok" style="flex:1;background:#e53e3e;border-color:#e53e3e">Retirer</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
@@ -130,6 +176,31 @@
   <script src="js/core.js"></script>
   <script>
     lucide.createIcons();
+
+    // ── MODALE RETIRER ──────────────────────────────────────
+    let removeTargetId = null;
+    function closeConfirmRemove() {
+      document.getElementById('confirm-remove-overlay').classList.remove('open');
+    }
+    document.getElementById('confirm-remove-cancel').addEventListener('click', closeConfirmRemove);
+    document.getElementById('confirm-remove-cancel2').addEventListener('click', closeConfirmRemove);
+    document.getElementById('confirm-remove-overlay').addEventListener('click', e => {
+      if (e.target.id === 'confirm-remove-overlay') closeConfirmRemove();
+    });
+    document.getElementById('confirm-remove-ok').addEventListener('click', async () => {
+      const btn = document.getElementById('confirm-remove-ok');
+      btn.disabled = true; btn.textContent = '…';
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (session && removeTargetId) {
+        await _supabase.from('coaching_requests').delete()
+          .or(`and(sender_id.eq.${session.user.id},recipient_id.eq.${removeTargetId}),and(sender_id.eq.${removeTargetId},recipient_id.eq.${session.user.id})`);
+      }
+      closeConfirmRemove();
+      btn.disabled = false; btn.textContent = 'Retirer';
+      // Retire la carte de l'athlète de la liste
+      document.getElementById(`athlete-card-${removeTargetId}`)?.remove();
+      removeTargetId = null;
+    });
 
     function getInitials(name) {
       if (!name) return '?';
@@ -194,18 +265,26 @@
         info.className = 'prat-info';
         info.innerHTML = `<div class="prat-name">@${esc(p.username || p.name || '—')}</div>`;
 
-        const arrow = document.createElement('i');
-        arrow.setAttribute('data-lucide', 'chevron-right');
-        arrow.style.color = 'var(--text-muted)';
+        const btnRowRemove = document.createElement('button');
+        btnRowRemove.className = 'prat-remove-btn';
+        btnRowRemove.title = 'Retirer cet athlète';
+        btnRowRemove.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/></svg>`;
+        btnRowRemove.onclick = (e) => {
+          e.stopPropagation();
+          removeTargetId = p.user_id;
+          document.getElementById('confirm-remove-name').textContent = `@${p.username || p.name || '?'}`;
+          document.getElementById('confirm-remove-overlay').classList.add('open');
+        };
 
         row.appendChild(avatar);
         row.appendChild(info);
-        row.appendChild(arrow);
+        row.appendChild(btnRowRemove);
         card.appendChild(row);
 
         // Boutons d'action sous chaque athlète
         const actions = document.createElement('div');
         actions.className = 'prat-actions';
+        actions.id = `athlete-card-${p.user_id}`;
 
         const btnActivites = document.createElement('button');
         btnActivites.className = 'prat-action-btn';
@@ -232,6 +311,7 @@
       });
 
       listEl.appendChild(card);
+      lucide.createIcons();
     });
   </script>
 
