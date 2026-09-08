@@ -554,7 +554,19 @@
 
     async function init() {
       await checkAuth();
-      const plan = localStorage.getItem('imaz_plan') || 'free';
+      const { data: { user } } = await _supabase.auth.getUser();
+      let plan = localStorage.getItem('imaz_plan') || 'free';
+      if (user) {
+        const { data } = await _supabase
+          .from('profiles')
+          .select('plan')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (data?.plan) {
+          plan = data.plan;
+          localStorage.setItem('imaz_plan', plan);
+        }
+      }
       if (plan === 'pro') {
         document.getElementById('pro-badge').style.display = '';
         document.getElementById('btn-top').style.display   = 'none';
