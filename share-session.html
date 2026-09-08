@@ -797,6 +797,10 @@
 
     // ── SHARE BUTTON ───────────────────────────────────────
     document.getElementById('btn-share').addEventListener('click', async () => {
+      if ((localStorage.getItem('imaz_plan') || 'free') !== 'pro') {
+        window.location.href = 'pricing.html';
+        return;
+      }
       const sessionData = collectSessionData();
       if (!sessionData) return;
 

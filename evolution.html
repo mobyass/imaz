@@ -367,7 +367,7 @@
 
       <input type="file" id="file-input" accept="image/*" style="display:none">
 
-      <div class="upload-placeholder" id="upload-placeholder" onclick="document.getElementById('file-input').click()">
+      <div class="upload-placeholder" id="upload-placeholder" onclick="if((localStorage.getItem('imaz_plan')||'free')!=='pro'){window.location.href='pricing.html';}else{document.getElementById('file-input').click();}">
         <i data-lucide="image-plus"></i>
         <span>Appuyer pour choisir une photo</span>
       </div>
@@ -545,6 +545,10 @@
     });
 
     saveBtn.addEventListener('click', async () => {
+      if ((localStorage.getItem('imaz_plan') || 'free') !== 'pro') {
+        window.location.href = 'pricing.html';
+        return;
+      }
       if (!_selectedFile) return;
       const note    = document.getElementById('upload-note').value.trim();
       const dateVal = document.getElementById('upload-date').value;

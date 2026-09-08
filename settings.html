@@ -147,6 +147,21 @@
       </div>
     </div>
 
+    <!-- ── ABONNEMENT ── -->
+    <div class="settings-section" style="margin-top:8px">
+      <h3 class="settings-section-title">Abonnement</h3>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-label" id="plan-label">—</span>
+          <span class="settings-desc" id="plan-desc"></span>
+        </div>
+        <button class="btn-secondary" id="btn-go-pricing" onclick="window.location.href='pricing.html'"
+          style="flex-shrink:0;font-size:13px;padding:6px 14px;display:none">
+          Passer à Pro
+        </button>
+      </div>
+    </div>
+
     <!-- ── COMPTE ── -->
     <div class="settings-section" style="margin-top:8px">
       <div class="settings-row">
@@ -172,6 +187,22 @@
     document.getElementById('back-btn').addEventListener('click', () => history.back());
     document.getElementById('btn-logout').addEventListener('click', logout);
     lucide.createIcons();
+
+    // Plan
+    (function() {
+      const plan = localStorage.getItem('imaz_plan') || 'free';
+      const label = document.getElementById('plan-label');
+      const desc  = document.getElementById('plan-desc');
+      const btn   = document.getElementById('btn-go-pricing');
+      if (plan === 'pro') {
+        label.textContent = 'Pro · Actif';
+        desc.textContent  = 'Toutes les fonctionnalités débloquées';
+      } else {
+        label.textContent = 'Gratuit';
+        desc.textContent  = '3 athlètes maximum';
+        btn.style.display = '';
+      }
+    })();
 
 
   </script>

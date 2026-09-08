@@ -303,6 +303,10 @@
       };
 
       window.submitComment = async function(key) {
+        if ((localStorage.getItem('imaz_plan') || 'free') !== 'pro') {
+          window.location.href = 'pricing.html';
+          return;
+        }
         const form = document.getElementById(`cf-${key}`);
         const text = form.querySelector('textarea').value.trim();
         if (!text) return;

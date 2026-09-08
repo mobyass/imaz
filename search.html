@@ -211,6 +211,11 @@
     </div>
   </div>
 
+  <div id="plan-banner" style="display:none;margin:0 16px 10px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <span style="font-size:13px;color:var(--text-muted)" id="plan-banner-text"></span>
+    <a href="pricing.html" style="font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap;text-decoration:none">Passer à Pro →</a>
+  </div>
+
   <div class="search-results" id="search-results">
     <div class="search-empty">
       <div class="search-empty-icon"><i data-lucide="users"></i></div>
@@ -226,6 +231,24 @@
   <script>
     checkAuth();
     lucide.createIcons();
+
+    // Bannière plan gratuit
+    (async function() {
+      const plan = localStorage.getItem('imaz_plan') || 'free';
+      if (plan === 'pro') return;
+      const { data: { user } } = await _supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await _supabase
+        .from('coaching_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('sender_id', user.id)
+        .eq('status', 'accepted');
+      const n = count || 0;
+      const banner = document.getElementById('plan-banner');
+      document.getElementById('plan-banner-text').textContent = `${n}/3 athlètes gratuits`;
+      banner.style.display = 'flex';
+      if (n >= 3) banner.style.borderColor = 'rgba(229,62,62,0.4)';
+    })();
 
     const searchInput  = document.getElementById('search-input');
     const searchClear  = document.getElementById('search-clear');
@@ -321,6 +344,20 @@
             e.stopPropagation();
             btn.disabled = true;
             btn.innerHTML = '…';
+
+            // Restriction plan gratuit : max 3 athlètes
+            const plan = localStorage.getItem('imaz_plan') || 'free';
+            if (plan !== 'pro') {
+              const { count } = await _supabase
+                .from('coaching_requests')
+                .select('id', { count: 'exact', head: true })
+                .eq('sender_id', user.id)
+                .eq('status', 'accepted');
+              if ((count || 0) >= 3) {
+                window.location.href = 'pricing.html';
+                return;
+              }
+            }
 
             const { error: err } = await sendCoachingRequest(p.user_id);
             if (err) console.error('sendCoachingRequest error:', err);

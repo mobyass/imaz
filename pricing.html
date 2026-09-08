@@ -22,158 +22,337 @@
   <title>Plans – ARMAZ</title>
   <link rel="stylesheet" href="css/base.css">
   <style>
+    /* ── Tokens ──────────────────────────────────────────── */
+    :root {
+      --check: #48c78e;
+      --cross:  #e53e3e;
+      --pro-bg:    rgba(79,142,247,0.08);
+      --pro-border: var(--accent);
+      --pro-text:  var(--text);
+      --pro-muted: var(--text-muted);
+      --pro-check: var(--accent);
+    }
+
+    /* ── Reset & base ────────────────────────────────────── */
     body {
       overflow-y: auto;
       height: auto;
       min-height: 100vh;
-      padding-bottom: 40px;
     }
 
-    .pricing-wrap {
-      padding: 20px 16px;
-      max-width: 420px;
+    /* ── Page layout ─────────────────────────────────────── */
+    .p-wrap {
+      max-width: 540px;
       margin: 0 auto;
+      padding: 28px 20px 72px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 44px;
     }
 
-    .pricing-hero {
+    /* ── Hero ────────────────────────────────────────────── */
+    .hero {
       text-align: center;
-      padding: 12px 0 8px;
     }
 
-    .pricing-hero h1 {
-      font-size: 26px;
+    .hero h1 {
+      font-size: clamp(28px, 8vw, 44px);
       font-weight: 800;
+      line-height: 1.1;
       letter-spacing: -0.5px;
+      color: var(--text);
+      text-wrap: balance;
+      margin: 0 0 10px;
     }
 
-    .pricing-hero p {
+    .hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .hero p {
       font-size: 14px;
       color: var(--text-muted);
-      margin-top: 6px;
+      line-height: 1.55;
+      margin: 0;
+      max-width: 340px;
+      margin-inline: auto;
     }
 
-    .plan-card {
+    /* ── Pricing card ────────────────────────────────────── */
+    .price-card {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
+      border: 1.5px solid var(--border);
+      border-radius: 22px;
+      padding: 28px 24px 24px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
     }
 
-    .plan-card.pro {
-      border-color: var(--accent);
-      background: linear-gradient(135deg, var(--surface) 0%, rgba(79,142,247,0.08) 100%);
-    }
-
-    .plan-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    .plan-name {
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .plan-badge {
+    .plan-pill {
       font-size: 10px;
       font-weight: 700;
-      background: var(--accent);
-      color: white;
-      border-radius: 20px;
-      padding: 3px 10px;
+      letter-spacing: 2.5px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 100px;
+      padding: 5px 18px;
     }
 
-    .plan-price {
-      font-size: 36px;
-      font-weight: 900;
-      letter-spacing: -1px;
-      color: var(--text);
-    }
-
-    .plan-price span {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--text-muted);
-    }
-
-    .plan-features {
+    /* Toggle */
+    .btog-wrap {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .plan-feature {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-
-    .plan-feature.included { color: var(--text); }
-
-    .feature-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .feature-icon.yes {
-      background: rgba(72, 199, 142, 0.15);
-      color: #48c78e;
-    }
-
-    .feature-icon.no {
       background: var(--surface-2);
-      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 4px;
+      gap: 4px;
     }
 
-    .feature-icon svg { width: 12px; height: 12px; }
-
-    .plan-cta { margin-top: 4px; }
-
-    .current-badge {
-      text-align: center;
-      font-size: 13px;
+    .btog {
+      background: none;
+      border: none;
+      border-radius: 11px;
+      padding: 9px 22px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--text-muted);
-      padding: 10px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: background 0.18s, color 0.18s, box-shadow 0.18s;
     }
 
-    .btn-upgrade {
+    .btog.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 5px rgba(0,0,0,0.10);
+    }
+
+    .save-pill {
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 100px;
+      padding: 2px 8px;
+    }
+
+    /* Price display */
+    .price-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 2px;
+      line-height: 1;
+    }
+
+    .price-big {
+      font-size: 72px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -3px;
+    }
+
+    .price-symbol {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text);
+      margin-top: 12px;
+    }
+
+    .price-caption {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 10px;
+    }
+
+    /* CTA */
+    .cta-btn {
       width: 100%;
       background: var(--accent);
-      color: white;
+      color: #fff;
       border: none;
-      border-radius: 12px;
-      padding: 14px;
+      border-radius: 14px;
+      padding: 17px;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
       transition: opacity 0.15s;
+      font-family: inherit;
     }
 
-    .btn-upgrade:hover { opacity: 0.85; }
-    .btn-upgrade:disabled { opacity: 0.5; cursor: default; }
+    .cta-btn:hover:not(:disabled) { opacity: 0.86; }
+    .cta-btn:disabled { opacity: 0.45; cursor: default; }
 
-    .checkout-error {
-      font-size: 13px;
-      color: #e53e3e;
+    .checkout-err {
+      font-size: 12px;
+      color: var(--cross);
+      min-height: 16px;
       text-align: center;
-      min-height: 18px;
+      width: 100%;
+    }
+
+    .plan-badge {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--check);
+    }
+
+    /* ── Section label ───────────────────────────────────── */
+    .sec-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    /* ── Feature list ────────────────────────────────────── */
+    .feat-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feat-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .feat-item:first-child { border-top: 1px solid var(--border); }
+
+    .feat-diamond {
+      font-size: 9px;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .feat-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 5px;
+      line-height: 1.3;
+    }
+
+    .feat-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    /* ── Comparison ──────────────────────────────────────── */
+    .comp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .comp-card {
+      border-radius: 18px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .comp-free {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+    }
+
+    .comp-pro {
+      background: var(--accent-dim);
+      border: 1.5px solid var(--accent);
+    }
+
+    .comp-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .comp-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 4px;
+    }
+
+    .comp-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .comp-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .comp-pro .comp-row { color: var(--text); }
+
+    .ci-yes { color: var(--check); font-weight: 700; flex-shrink: 0; }
+    .ci-no  { color: var(--cross); font-weight: 700; flex-shrink: 0; }
+
+    /* ── Trust signals ───────────────────────────────────── */
+    .trust {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .trust-row {
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .trust-row span:first-child { color: var(--accent); font-weight: 700; }
+
+    /* ── Final CTA ───────────────────────────────────────── */
+    .final-cta {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .final-cta .cta-btn { max-width: 100%; }
+
+    .cta-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin: 0;
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 360px) {
+      .comp-grid { grid-template-columns: 1fr; }
+      .price-big { font-size: 60px; }
     }
   </style>
   <script defer src="/_vercel/insights/script.js"></script>
@@ -186,75 +365,143 @@
     <div style="width:38px"></div>
   </header>
 
-  <div class="pricing-wrap">
+  <div class="p-wrap">
 
-    <div class="pricing-hero">
-      <h1>Passe à Pro</h1>
-      <p>Débloque toutes les fonctionnalités de coaching</p>
-    </div>
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Coach sans <em>limites.</em></h1>
+      <p>Partage tes séances, suis tes athlètes, accompagne leur progression.</p>
+    </section>
 
-    <!-- Plan Gratuit -->
-    <div class="plan-card">
-      <div class="plan-header">
-        <div class="plan-name">Gratuit</div>
-      </div>
-      <div class="plan-price">0€ <span>/ mois</span></div>
-      <div class="plan-features">
-        <div class="plan-feature included">
-          <div class="feature-icon yes"><i data-lucide="check"></i></div>
-          Carnet d'entraînement personnel
-        </div>
-        <div class="plan-feature included">
-          <div class="feature-icon yes"><i data-lucide="check"></i></div>
-          Calendrier & statistiques
-        </div>
-        <div class="plan-feature">
-          <div class="feature-icon no"><i data-lucide="x"></i></div>
-          Partage de séances
-        </div>
-        <div class="plan-feature">
-          <div class="feature-icon no"><i data-lucide="x"></i></div>
-          Suivi d'athlètes
-        </div>
-        <div class="plan-feature">
-          <div class="feature-icon no"><i data-lucide="x"></i></div>
-          Invitations de coaching
-        </div>
-      </div>
-      <div class="current-badge" id="free-current" style="display:none">✓ Ton plan actuel</div>
-    </div>
+    <!-- Pricing card -->
+    <section>
+      <div class="price-card">
 
-    <!-- Plan Pro -->
-    <div class="plan-card pro">
-      <div class="plan-header">
-        <div class="plan-name">Pro</div>
-        <div class="plan-badge">Recommandé</div>
+        <div class="plan-pill">Pro</div>
+
+        <div class="btog-wrap">
+          <button class="btog active" id="btn-monthly" onclick="setBilling('monthly')">Mensuel</button>
+          <button class="btog" id="btn-yearly" onclick="setBilling('yearly')">
+            Annuel <span class="save-pill">−2 mois</span>
+          </button>
+        </div>
+
+        <div>
+          <div class="price-row">
+            <span class="price-big" id="price-amount">9,99</span>
+            <span class="price-symbol">€</span>
+          </div>
+          <div class="price-caption" id="price-caption">par mois — résiliable à tout moment</div>
+        </div>
+
+        <div class="checkout-err" id="err-top"></div>
+        <div class="plan-badge" id="pro-badge" style="display:none">✓ Ton plan actuel</div>
+        <button class="cta-btn" id="btn-top">Passer à Pro →</button>
+
       </div>
-      <div class="plan-price" id="pro-price">—</div>
-      <div class="plan-features">
-        <div class="plan-feature included">
-          <div class="feature-icon yes"><i data-lucide="check"></i></div>
-          Tout du plan Gratuit
+    </section>
+
+    <!-- What Pro unlocks -->
+    <section>
+      <div class="sec-label">Ce que Pro débloque</div>
+      <div class="feat-list">
+
+        <div class="feat-item">
+          <div class="feat-diamond">◆</div>
+          <div>
+            <p class="feat-name">Partage de séances illimité</p>
+            <p class="feat-desc">Envoie autant de séances que tu veux à tes athlètes, sans restriction de nombre.</p>
+          </div>
         </div>
-        <div class="plan-feature included">
-          <div class="feature-icon yes"><i data-lucide="check"></i></div>
-          Partage de séances illimité
+
+        <div class="feat-item">
+          <div class="feat-diamond">◆</div>
+          <div>
+            <p class="feat-name">Suivi complet de tes athlètes</p>
+            <p class="feat-desc">Accède au journal et aux statistiques de ceux que tu coaches, en temps réel.</p>
+          </div>
         </div>
-        <div class="plan-feature included">
-          <div class="feature-icon yes"><i data-lucide="check"></i></div>
-          Suivi d'athlètes
+
+        <div class="feat-item">
+          <div class="feat-diamond">◆</div>
+          <div>
+            <p class="feat-name">Coaching & commentaires</p>
+            <p class="feat-desc">Commente les séances complétées de tes athlètes et guide-les séance après séance.</p>
+          </div>
         </div>
-        <div class="plan-feature included">
-          <div class="feature-icon yes"><i data-lucide="check"></i></div>
-          Invitations & coaching
+
+        <div class="feat-item">
+          <div class="feat-diamond">◆</div>
+          <div>
+            <p class="feat-name">Photos de progression</p>
+            <p class="feat-desc">Suis l'évolution physique avec des photos datées, partagées en toute confidentialité.</p>
+          </div>
         </div>
+
+        <div class="feat-item">
+          <div class="feat-diamond">◆</div>
+          <div>
+            <p class="feat-name">Améliorations futures incluses</p>
+            <p class="feat-desc">Toutes les nouvelles fonctionnalités Pro arrivent automatiquement dans ton abonnement.</p>
+          </div>
+        </div>
+
       </div>
-      <div class="plan-cta">
-        <div class="checkout-error" id="checkout-error"></div>
-        <div class="current-badge" id="pro-current" style="display:none">✓ Ton plan actuel</div>
-        <button class="btn-upgrade" id="btn-upgrade">Passer à Pro</button>
+    </section>
+
+    <!-- Comparison -->
+    <section>
+      <div class="sec-label">Gratuit / Pro</div>
+      <div class="comp-grid">
+
+        <div class="comp-card comp-free">
+          <div>
+            <div class="comp-name">Gratuit</div>
+            <div class="comp-sub">Pour t'entraîner seul.</div>
+          </div>
+          <div class="comp-rows">
+            <div class="comp-row"><span class="ci-yes">✓</span>Carnet d'entraînement</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Exercices, EMOM & Cardio</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Templates de séances</div>
+            <div class="comp-row"><span class="ci-no">✗</span>Partage de séances</div>
+            <div class="comp-row"><span class="ci-no">✗</span>Suivi d'athlètes (max 3)</div>
+            <div class="comp-row"><span class="ci-no">✗</span>Coaching & commentaires</div>
+            <div class="comp-row"><span class="ci-no">✗</span>Photos de progression</div>
+          </div>
+        </div>
+
+        <div class="comp-card comp-pro">
+          <div>
+            <div class="comp-name">Pro</div>
+            <div class="comp-sub">Tout débloqué pour coacher.</div>
+          </div>
+          <div class="comp-rows">
+            <div class="comp-row"><span class="ci-yes">✓</span>Carnet d'entraînement</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Exercices, EMOM & Cardio</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Templates de séances</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Partage illimité</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Athlètes illimités</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Coaching & commentaires</div>
+            <div class="comp-row"><span class="ci-yes">✓</span>Photos de progression</div>
+          </div>
+        </div>
+
       </div>
-    </div>
+    </section>
+
+    <!-- Trust signals -->
+    <section class="trust">
+      <div class="trust-row"><span>✓</span> Sans engagement — résilie quand tu veux</div>
+      <div class="trust-row"><span>✓</span> Paiement sécurisé par Stripe</div>
+      <div class="trust-row"><span>✓</span> Accès immédiat après paiement</div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final-cta">
+      <div class="checkout-err" id="err-bot"></div>
+      <button class="cta-btn" id="btn-bot">Passer à Pro →</button>
+      <p class="cta-note">Résiliable à tout moment depuis tes réglages.</p>
+    </section>
 
   </div>
 
@@ -265,46 +512,58 @@
   <script>
     lucide.createIcons();
 
-    async function init() {
-      await checkAuth();
-      const currentPlan = localStorage.getItem('imaz_plan') || 'free';
-      if (currentPlan === 'pro') {
-        document.getElementById('pro-current').style.display = '';
-        document.getElementById('btn-upgrade').style.display = 'none';
-        document.getElementById('pro-price').textContent     = 'Actif';
+    let currentBilling = 'monthly';
+
+    function setBilling(type) {
+      currentBilling = type;
+      document.getElementById('btn-monthly').classList.toggle('active', type === 'monthly');
+      document.getElementById('btn-yearly').classList.toggle('active',  type === 'yearly');
+      if (type === 'yearly') {
+        document.getElementById('price-amount').textContent  = '7,99';
+        document.getElementById('price-caption').innerHTML   = 'par mois · <strong style="color:var(--accent)">95,88 € / an</strong> · 2 mois offerts';
       } else {
-        document.getElementById('free-current').style.display = '';
-        document.getElementById('pro-price').innerHTML        = '14,99€ <span>/ mois</span>';
+        document.getElementById('price-amount').textContent  = '9,99';
+        document.getElementById('price-caption').textContent = 'par mois — résiliable à tout moment';
       }
     }
 
-    document.getElementById('btn-upgrade').addEventListener('click', async () => {
-      const btn = document.getElementById('btn-upgrade');
-      const err = document.getElementById('checkout-error');
-      btn.disabled    = true;
-      btn.textContent = '…';
-      err.textContent = '';
+    async function startCheckout() {
+      const btns = [document.getElementById('btn-top'), document.getElementById('btn-bot')];
+      const errs = [document.getElementById('err-top'), document.getElementById('err-bot')];
+      btns.forEach(b => { b.disabled = true; b.textContent = '…'; });
+      errs.forEach(e => { e.textContent = ''; });
 
       try {
-        const { data: { session } } = await _supabase.auth.getSession();
-        const { data: { user } }    = await _supabase.auth.getUser();
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) { window.location.href = 'login.html'; return; }
 
-        if (!user || !session) { window.location.href = 'login.html'; return; }
-
-        const { data: json, error: fnError } = await _supabase.functions.invoke('quick-responder', {
-          body: { user_id: user.id, email: user.email },
+        const { data: json, error: fnError } = await _supabase.functions.invoke('create-checkout', {
+          body: { user_id: user.id, email: user.email, billing: currentBilling },
         });
 
         if (fnError) throw new Error(json?.error || fnError.message);
-        if (!json?.url) throw new Error(json?.error || 'Pas d\'URL reçue');
+        if (!json?.url) throw new Error('Pas d\'URL reçue');
         window.location.href = json.url;
 
       } catch (e) {
-        err.textContent = e.message || 'Une erreur est survenue.';
-        btn.disabled    = false;
-        btn.textContent = 'Passer à Pro';
+        const msg = e.message || 'Une erreur est survenue.';
+        errs.forEach(el => { el.textContent = msg; });
+        btns.forEach(b => { b.disabled = false; b.textContent = 'Passer à Pro →'; });
       }
-    });
+    }
+
+    async function init() {
+      await checkAuth();
+      const plan = localStorage.getItem('imaz_plan') || 'free';
+      if (plan === 'pro') {
+        document.getElementById('pro-badge').style.display = '';
+        document.getElementById('btn-top').style.display   = 'none';
+        document.getElementById('btn-bot').style.display   = 'none';
+      }
+    }
+
+    document.getElementById('btn-top').addEventListener('click', startCheckout);
+    document.getElementById('btn-bot').addEventListener('click', startCheckout);
 
     init();
   </script>
