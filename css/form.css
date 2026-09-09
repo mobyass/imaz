@@ -172,7 +172,6 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  overflow: hidden;
 }
 
 .exo-field label {
@@ -239,7 +238,7 @@
 
 .sets-header {
   display: grid;
-  grid-template-columns: 26px 1fr 1fr 1fr 26px;
+  grid-template-columns: 22px 1fr 1fr 24px;
   gap: 6px;
   margin-bottom: 4px;
 }
@@ -258,6 +257,37 @@
   grid-template-columns: 26px 1fr 1fr 1fr 26px;
   align-items: center;
   gap: 6px;
+}
+
+.set-row.rest-min-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.set-row-main {
+  display: grid;
+  grid-template-columns: 22px 1fr 1fr 24px;
+  align-items: center;
+  gap: 6px;
+}
+
+.set-rest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.set-rest-row .rest-time-input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  border-bottom-width: 0;
 }
 
 /* No-rest variants */
@@ -299,6 +329,7 @@
 
 .set-field input::placeholder { color: var(--text-muted); }
 .set-field span { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+.set-field .set-unit { font-size: 11px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
 
 .set-del {
   background: none;
@@ -752,32 +783,30 @@ input.emom-counter-val:focus {
 }
 .rest-time-input:focus { border-bottom-color: var(--accent); }
 
-/* Give Récup column more space when using MM:SS counter */
+/* MM:SS mode: Séries/Rép/Poids on row 1, Récup full-width on row 2 */
 .exo-fields-4col--min {
-  grid-template-columns: 1fr 1fr 1fr 1.8fr;
+  grid-template-columns: repeat(3, 1fr);
 }
 
-.set-row.rest-min-mode {
-  grid-template-columns: 22px 1fr 1fr 70px 30px;
+.exo-fields-4col--min .exo-field:last-child {
+  grid-column: 1 / -1;
 }
 
-.set-rest-col--min {
+.exo-fields-4col--min .exo-field:last-child .rest-counter {
+  justify-content: space-between;
+}
+
+.exo-fields-4col--min .exo-field:last-child .rest-time-input {
+  flex: 1;
   min-width: 0;
-  justify-content: center;
+  text-align: center;
 }
 
-/* MM:SS input inside exercise field and emom-setting cards */
-.exo-field .rest-counter,
+
+/* MM:SS input inside emom-setting cards (Intervalle, Durée) */
 .emom-setting .rest-counter {
   justify-content: space-between;
   overflow: hidden;
-}
-
-.exo-field .rest-time-input {
-  flex: 1;
-  min-width: 0;
-  width: auto;
-  border-bottom-width: 0;
 }
 
 .emom-setting .emom-counter-btn {

@@ -127,7 +127,7 @@ function addExercise(data = {}) {
   const colClass = settings.restEnabled ? 'exo-fields-4col exo-fields-4col--min' : 'exo-fields-3col';
 
   const setsHeaderHTML = settings.restEnabled
-    ? '<span></span><span>Rép.</span><span>Poids</span><span>Récup</span><span></span>'
+    ? '<span></span><span>Rép.</span><span>Poids</span><span></span>'
     : '<span></span><span>Rép.</span><span>Poids</span><span></span>';
 
   item.innerHTML = `
@@ -283,26 +283,30 @@ function addSetRow(list, repsVal, restValSec, weightVal, isBodyweight) {
   if (!settings.restEnabled) row.classList.add('no-rest');
   if (settings.restEnabled)  row.classList.add('rest-min-mode');
 
-  const restCellHTML = settings.restEnabled ? `
-    <div class="set-field set-rest-col set-rest-col--min">
+  const restRowHTML = settings.restEnabled ? `
+    <div class="rest-counter set-rest-row">
+      <button type="button" class="rest-counter-btn rest-counter-minus">−</button>
       <input type="text" inputmode="numeric" class="set-rest rest-time-input"
         value="${restDisplay}" placeholder="00:00">
+      <button type="button" class="rest-counter-btn rest-counter-plus">+</button>
     </div>
   ` : `<input type="hidden" class="set-rest" value="${restValSec ?? 0}">`;
 
   row.innerHTML = `
-    <span class="set-num">S${num}</span>
-    <div class="set-field">
-      <input type="number" min="0" class="set-reps" placeholder="rép" value="${repsVal || ''}">
-      <span>rép</span>
+    <div class="set-row-main">
+      <span class="set-num">S${num}</span>
+      <div class="set-field">
+        <input type="number" min="10" class="set-reps" placeholder="10" value="${repsVal || ''}">
+        <span class="set-unit">rép</span>
+      </div>
+      <div class="set-field set-weight-col">
+        <input type="number" min="0" step="0.5" class="set-weight" placeholder="—"
+          value="${weightVal ?? ''}" ${isBodyweight ? 'disabled' : ''}>
+        <span>${wUnit}</span>
+      </div>
+      <button class="set-del"><i data-lucide="x"></i></button>
     </div>
-    <div class="set-field set-weight-col">
-      <input type="number" min="0" step="0.5" class="set-weight" placeholder="—"
-        value="${weightVal ?? ''}" ${isBodyweight ? 'disabled' : ''}>
-      <span>${wUnit}</span>
-    </div>
-    ${restCellHTML}
-    <button class="set-del"><i data-lucide="x"></i></button>
+    ${restRowHTML}
   `;
 
   row.querySelector('.set-del').addEventListener('click', () => {
