@@ -171,6 +171,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .exo-field label {
@@ -764,10 +766,18 @@ input.emom-counter-val:focus {
   justify-content: center;
 }
 
-/* MM:SS input inside emom-setting cards (Intervalle, Durée) */
+/* MM:SS input inside exercise field and emom-setting cards */
+.exo-field .rest-counter,
 .emom-setting .rest-counter {
   justify-content: space-between;
   overflow: hidden;
+}
+
+.exo-field .rest-time-input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  border-bottom-width: 0;
 }
 
 .emom-setting .emom-counter-btn {
