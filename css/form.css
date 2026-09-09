@@ -767,13 +767,21 @@ input.emom-counter-val:focus {
 /* MM:SS input inside emom-setting cards (Intervalle, Durée) */
 .emom-setting .rest-counter {
   justify-content: space-between;
+  overflow: hidden;
+}
+
+.emom-setting .emom-counter-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .emom-setting .rest-time-input {
   flex: 1;
   min-width: 0;
   width: auto;
-  font-size: 18px;
+  font-size: clamp(14px, 4vw, 18px);
   font-weight: 800;
   border-bottom-width: 0;
 }
