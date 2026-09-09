@@ -751,7 +751,7 @@ input.emom-counter-val:focus {
 .rest-time-input:focus { border-bottom-color: var(--accent); }
 
 /* Give Récup column more space when using MM:SS counter */
-.exo-fields-4col:has(.rest-counter) {
+.exo-fields-4col--min {
   grid-template-columns: 1fr 1fr 1fr 1.8fr;
 }
 

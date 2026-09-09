@@ -106,9 +106,8 @@ function addExercise(data = {}) {
   const isCustom  = sets.length > 0 && !allSetsIdentical(sets);
   const wUnit     = settings.weightUnit;
 
-  const uniformRestSec     = sets.length > 0 ? (sets[0].rest || 0) : 0;
-  const uniformRestDisplay = secToDisplay(uniformRestSec, settings);
-  const globalWeight       = sets.length > 0 ? (sets[0].weight ?? '') : (data.weight ?? '');
+  const uniformRestSec = sets.length > 0 ? (sets[0].rest || 0) : 0;
+  const globalWeight   = sets.length > 0 ? (sets[0].weight ?? '') : (data.weight ?? '');
 
   const item = document.createElement('div');
   item.classList.add('exo-item');
@@ -116,18 +115,16 @@ function addExercise(data = {}) {
   const restFieldHTML = settings.restEnabled ? `
     <div class="exo-field">
       <label>Récup</label>
-      ${settings.restUnit === 'min' ? `
-        <div class="rest-counter">
-          <button type="button" class="rest-counter-btn rest-counter-minus">−</button>
-          <input type="text" inputmode="numeric" class="exo-rest rest-time-input"
-            value="${uniformRestDisplay || '00:00'}" placeholder="00:00">
-          <button type="button" class="rest-counter-btn rest-counter-plus">+</button>
-        </div>
-      ` : `<input type="number" min="0" class="exo-rest" placeholder="" value="${uniformRestDisplay || ''}">`}
+      <div class="rest-counter">
+        <button type="button" class="rest-counter-btn rest-counter-minus">−</button>
+        <input type="text" inputmode="numeric" class="exo-rest rest-time-input"
+          value="${secToMmss(uniformRestSec)}" placeholder="00:00">
+        <button type="button" class="rest-counter-btn rest-counter-plus">+</button>
+      </div>
     </div>
   ` : '';
 
-  const colClass = settings.restEnabled ? 'exo-fields-4col' : 'exo-fields-3col';
+  const colClass = settings.restEnabled ? 'exo-fields-4col exo-fields-4col--min' : 'exo-fields-3col';
 
   const setsHeaderHTML = settings.restEnabled
     ? '<span></span><span>Rép.</span><span>Poids</span><span>Récup</span><span></span>'
@@ -209,7 +206,7 @@ function addExercise(data = {}) {
     const n       = parseInt(item.querySelector('.exo-series').value)   || 3;
     const reps    = parseInt(item.querySelector('.exo-reps').value)     || 0;
     const restEl  = item.querySelector('.exo-rest');
-    const restSec = restEl ? displayToSec(restEl.value, settings) : 0;
+    const restSec = restEl ? mmssToSec(restEl.value) : 0;
     const weight  = parseFloat(item.querySelector('.exo-weight').value) || null;
 
     const list = item.querySelector('.sets-list');
@@ -228,8 +225,8 @@ function addExercise(data = {}) {
       item.querySelector('.exo-reps').value = rows[0].querySelector('.set-reps').value;
       const restEl = item.querySelector('.exo-rest');
       if (restEl) {
-        const rawSec = displayToSec(rows[0].querySelector('.set-rest')?.value, settings) || 0;
-        restEl.value = secToDisplay(rawSec, settings) || (settings.restUnit === 'min' ? '00:00' : '');
+        const rawSec = mmssToSec(rows[0].querySelector('.set-rest')?.value) || 0;
+        restEl.value = secToMmss(rawSec);
       }
       item.querySelector('.exo-weight').value = rows[0].querySelector('.set-weight').value || '';
     }
@@ -245,34 +242,31 @@ function addExercise(data = {}) {
       const last = rows[rows.length - 1];
       reps   = last.querySelector('.set-reps').value   || null;
       const restRaw = last.querySelector('.set-rest')?.value || null;
-      rest   = restRaw !== null ? displayToSec(restRaw, settings) : null;
+      rest   = restRaw !== null ? mmssToSec(restRaw) : null;
       weight = last.querySelector('.set-weight').value || null;
     }
     addSetRow(list, reps, rest, weight, false);
     lucide.createIcons();
   });
 
-  if (settings.restUnit === 'min') {
-    item.addEventListener('click', e => {
-      const btn = e.target.closest('.rest-counter-btn');
-      if (!btn) return;
-      const inp = btn.closest('.rest-counter').querySelector('.exo-rest, .set-rest');
-      if (!inp) return;
-      const sec = displayToSec(inp.value, settings);
-      const newSec = btn.classList.contains('rest-counter-minus')
-        ? Math.max(0, sec - 10) : Math.min(3600, sec + 10);
-      inp.value = secToDisplay(newSec, settings);
-      if (inp.classList.contains('exo-rest')) {
-        item.querySelectorAll('.set-rest').forEach(sr => { sr.value = secToDisplay(newSec, settings); });
-      }
-    });
+  item.addEventListener('click', e => {
+    const btn = e.target.closest('.rest-counter-btn');
+    if (!btn) return;
+    const inp = btn.closest('.rest-counter').querySelector('.exo-rest, .set-rest');
+    if (!inp) return;
+    const sec    = mmssToSec(inp.value);
+    const newSec = btn.classList.contains('rest-counter-minus')
+      ? Math.max(0, sec - 10) : Math.min(3600, sec + 10);
+    inp.value = secToMmss(newSec);
+    if (inp.classList.contains('exo-rest')) {
+      item.querySelectorAll('.set-rest').forEach(sr => { sr.value = secToMmss(newSec); });
+    }
+  });
 
-    item.addEventListener('blur', e => {
-      if (!e.target.classList.contains('rest-time-input')) return;
-      const sec = displayToSec(e.target.value, settings);
-      e.target.value = secToDisplay(Math.max(0, sec || 0), settings) || '00:00';
-    }, true);
-  }
+  item.addEventListener('blur', e => {
+    if (!e.target.classList.contains('rest-time-input')) return;
+    e.target.value = secToMmss(Math.max(0, mmssToSec(e.target.value) || 0));
+  }, true);
 
   container.appendChild(item);
   lucide.createIcons();
@@ -282,25 +276,19 @@ function addSetRow(list, repsVal, restValSec, weightVal, isBodyweight) {
   const settings    = getSettings();
   const num         = list.children.length + 1;
   const wUnit       = settings.weightUnit;
-  const restDisplay = (restValSec !== null && restValSec !== undefined)
-    ? secToDisplay(restValSec, settings) : '';
+  const restDisplay = secToMmss(restValSec ?? 0);
 
   const row = document.createElement('div');
   row.classList.add('set-row');
   if (!settings.restEnabled) row.classList.add('no-rest');
-  if (settings.restUnit === 'min') row.classList.add('rest-min-mode');
+  if (settings.restEnabled)  row.classList.add('rest-min-mode');
 
-  const restCellHTML = settings.restEnabled ? (settings.restUnit === 'min' ? `
+  const restCellHTML = settings.restEnabled ? `
     <div class="set-field set-rest-col set-rest-col--min">
       <input type="text" inputmode="numeric" class="set-rest rest-time-input"
-        value="${restDisplay || '00:00'}" placeholder="00:00">
+        value="${restDisplay}" placeholder="00:00">
     </div>
-  ` : `
-    <div class="set-field set-rest-col">
-      <input type="number" min="0" class="set-rest" placeholder="" value="${restDisplay}">
-      <span>${settings.restUnit}</span>
-    </div>
-  `) : `<input type="hidden" class="set-rest" value="${restValSec ?? 0}">`;
+  ` : `<input type="hidden" class="set-rest" value="${restValSec ?? 0}">`;
 
   row.innerHTML = `
     <span class="set-num">S${num}</span>
@@ -568,7 +556,7 @@ function collectModalData() {
         el.querySelectorAll('.set-row').forEach(row => {
           const restEl  = row.querySelector('.set-rest');
           const restSec = settings.restEnabled
-            ? displayToSec(restEl?.value, settings)
+            ? mmssToSec(restEl?.value)
             : (parseInt(restEl?.value) || 0);
           sets.push({
             reps:   parseInt(row.querySelector('.set-reps').value)     || 0,
@@ -580,7 +568,7 @@ function collectModalData() {
         const count  = parseInt(el.querySelector('.exo-series').value) || 0;
         const reps   = parseInt(el.querySelector('.exo-reps').value)   || 0;
         const restEl = el.querySelector('.exo-rest');
-        const rest   = restEl ? displayToSec(restEl.value, settings) : 0;
+        const rest   = restEl ? mmssToSec(restEl.value) : 0;
         const weight = parseFloat(el.querySelector('.exo-weight').value) || null;
         for (let i = 0; i < count; i++) sets.push({ reps, rest, weight });
       }
