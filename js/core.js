@@ -29,13 +29,25 @@ function persistSettings(s) {
 
 function secToDisplay(sec, settings) {
   if (sec === null || sec === undefined || sec === '') return '';
-  if (settings.restUnit === 'min') return +(sec / 60).toFixed(sec % 60 === 0 ? 0 : 1);
+  if (settings.restUnit === 'min') {
+    const total = Math.round(Number(sec));
+    if (isNaN(total)) return '00:00';
+    const m = Math.floor(total / 60), s = total % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
   return sec;
 }
 
 function displayToSec(val, settings) {
   if (!val && val !== 0) return 0;
-  if (settings.restUnit === 'min') return Math.round(parseFloat(val) * 60) || 0;
+  if (settings.restUnit === 'min') {
+    const str = String(val).trim();
+    if (str.includes(':')) {
+      const [m, s] = str.split(':');
+      return (parseInt(m) || 0) * 60 + (parseInt(s) || 0);
+    }
+    return Math.round(parseFloat(str) * 60) || 0;
+  }
   return parseInt(val) || 0;
 }
 
@@ -82,7 +94,7 @@ function getSessions() {
   return JSON.parse(localStorage.getItem('imaz_sessions') || '{}');
 }
 
-function persistSession(dateKey, exercises, emoms = [], cardios = []) {
+function persistSession(dateKey, exercises, emoms = [], cardios = [], order = null) {
   const all     = getSessions();
   const prev    = all[dateKey] || {};
   const prevExo = prev.exercises || [];
@@ -92,7 +104,7 @@ function persistSession(dateKey, exercises, emoms = [], cardios = []) {
     return (match && match.done) ? { ...ex, done: match.done } : ex;
   });
 
-  all[dateKey] = { ...prev, date: dateKey, exercises: merged, emoms, cardios, completed: false };
+  all[dateKey] = { ...prev, date: dateKey, exercises: merged, emoms, cardios, order, completed: false };
   localStorage.setItem('imaz_sessions', JSON.stringify(all));
   if (typeof syncSessionToSupabase === 'function') syncSessionToSupabase(dateKey, all[dateKey]);
 }

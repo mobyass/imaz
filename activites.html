@@ -81,8 +81,12 @@
     }
 
     function sessionRow(key, s, commentMap) {
-      const exoNames = s.exercises ? s.exercises.map(e => e.name).filter(Boolean) : [];
-      const sub   = exoNames.length > 0 ? exoNames.join(', ') : 'Séance planifiée';
+      const parts = [
+        ...(s.exercises || []).map(e => e.name).filter(Boolean),
+        ...(s.emoms     || []).map(em => `EMOM ${em.interval}s`),
+        ...(s.cardios   || []).map(c => c.name).filter(Boolean),
+      ];
+      const sub = parts.length > 0 ? parts.join(', ') : 'Séance planifiée';
       const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
       const c     = commentMap[key];
       const commentHtml = c ? `

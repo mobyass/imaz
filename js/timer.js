@@ -4,7 +4,22 @@ const TIMER_CIRC = +(2 * Math.PI * 54).toFixed(2); // r=54 → 339.29
 let restTimerInterval  = null;
 let restTimerTotal     = 0;
 let restTimerRemaining = 0;
-let restTimerPaused    = false;
+let restTimerRunning   = false;
+
+const PAUSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+const PLAY_ICON  = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+
+function setRestBtn(running) {
+  const btn = document.getElementById('rest-timer-pause');
+  restTimerRunning = running;
+  if (running) {
+    btn.innerHTML = `${PAUSE_ICON} Arrêter`;
+    btn.classList.remove('paused');
+  } else {
+    btn.innerHTML = `${PLAY_ICON} Démarrer`;
+    btn.classList.add('paused');
+  }
+}
 
 function startRestTimer(seconds) {
   if (!seconds || seconds <= 0) return;
@@ -12,30 +27,28 @@ function startRestTimer(seconds) {
 
   restTimerTotal     = seconds;
   restTimerRemaining = seconds;
-  restTimerPaused    = false;
 
-  const overlay  = document.getElementById('rest-timer-overlay');
-  const pauseBtn = document.getElementById('rest-timer-pause');
-
+  const overlay = document.getElementById('rest-timer-overlay');
   overlay.classList.add('active');
   overlay.classList.remove('timer-done');
-  pauseBtn.textContent = 'Pause';
-  pauseBtn.classList.remove('paused');
-
+  setRestBtn(true);
   updateRestTimerDisplay();
+  runRestTicker();
+}
 
+function runRestTicker() {
   restTimerInterval = setInterval(() => {
-    if (restTimerPaused) return;
     restTimerRemaining--;
     updateRestTimerDisplay();
-
     if (restTimerRemaining <= 0) {
       clearInterval(restTimerInterval);
       restTimerInterval = null;
+      const overlay = document.getElementById('rest-timer-overlay');
       overlay.classList.add('timer-done');
       playTimerDone();
       document.getElementById('rest-timer-countdown').textContent = '✓';
       document.getElementById('timer-progress').style.strokeDashoffset = TIMER_CIRC;
+      setRestBtn(false);
       setTimeout(stopRestTimer, 2000);
     }
   }, 1000);
@@ -63,15 +76,22 @@ function updateRestTimerDisplay() {
 function stopRestTimer() {
   if (restTimerInterval) clearInterval(restTimerInterval);
   restTimerInterval = null;
-  restTimerPaused   = false;
+  restTimerRunning  = false;
   document.getElementById('rest-timer-overlay').classList.remove('active', 'timer-done');
 }
 
-function togglePauseRestTimer() {
-  restTimerPaused = !restTimerPaused;
-  const btn = document.getElementById('rest-timer-pause');
-  btn.textContent = restTimerPaused ? 'Reprendre' : 'Pause';
-  btn.classList.toggle('paused', restTimerPaused);
+function toggleRestTimer() {
+  if (restTimerRunning) {
+    // Arrêter
+    clearInterval(restTimerInterval);
+    restTimerInterval = null;
+    setRestBtn(false);
+  } else {
+    // Démarrer / reprendre
+    if (restTimerRemaining <= 0) return;
+    setRestBtn(true);
+    runRestTicker();
+  }
 }
 
 function playTimerDone() {
@@ -104,4 +124,4 @@ function playTimerDone() {
 
 // ── EVENTS ───────────────────────────────────────────────
 document.getElementById('rest-timer-stop').addEventListener('click', stopRestTimer);
-document.getElementById('rest-timer-pause').addEventListener('click', togglePauseRestTimer);
+document.getElementById('rest-timer-pause').addEventListener('click', toggleRestTimer);

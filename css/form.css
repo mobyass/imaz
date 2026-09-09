@@ -353,14 +353,14 @@
 
 /* ── EMOM BLOCK ── */
 .emom-block {
-  background: var(--bg);
-  border: 1.5px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .emom-block-header {
@@ -370,16 +370,16 @@
 }
 
 .emom-block-label {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.4px;
   display: flex;
   align-items: center;
   gap: 5px;
 }
-.emom-block-label svg { width: 13px; height: 13px; }
+.emom-block-label svg { width: 12px; height: 12px; }
 
 .emom-block-settings {
   display: grid;
@@ -388,13 +388,15 @@
 }
 
 .emom-setting {
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .emom-setting > span {
@@ -438,6 +440,20 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+input.emom-counter-val {
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  width: 44px;
+  -moz-appearance: textfield;
+}
+input.emom-counter-val::-webkit-inner-spin-button,
+input.emom-counter-val::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input.emom-counter-val:focus {
+  background: var(--surface-2);
+  border-radius: 6px;
+}
 
 .emom-counter-unit {
   font-size: 11px;
@@ -451,10 +467,10 @@
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 10px 10px 12px;
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 .emom-exo-fields {
@@ -564,6 +580,24 @@
   gap: 10px;
 }
 
+.btn-save-as-tpl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.btn-save-as-tpl:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+.btn-save-as-tpl svg { width: 14px; height: 14px; }
+
 /* ── CONFIRM DELETE ── */
 .confirm-text {
   font-size: 13px;
@@ -668,4 +702,78 @@
   background: rgba(239, 68, 68, 0.08);
   border-radius: 8px;
   border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ── REST COUNTER (MM:SS mode) ── */
+.rest-counter {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rest-counter-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.rest-counter-btn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.rest-time-input {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  outline: none;
+  text-align: center;
+  width: 44px;
+  padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+  min-width: 0;
+}
+.rest-time-input:focus { border-bottom-color: var(--accent); }
+
+/* Give Récup column more space when using MM:SS counter */
+.exo-fields-4col:has(.rest-counter) {
+  grid-template-columns: 1fr 1fr 1fr 1.8fr;
+}
+
+.set-row.rest-min-mode {
+  grid-template-columns: 22px 1fr 1fr 70px 30px;
+}
+
+.set-rest-col--min {
+  min-width: 0;
+  justify-content: center;
+}
+
+/* MM:SS input inside emom-setting cards (Intervalle, Durée) */
+.emom-setting .rest-counter {
+  justify-content: space-between;
+}
+
+.emom-setting .rest-time-input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  font-size: 18px;
+  font-weight: 800;
+  border-bottom-width: 0;
 }

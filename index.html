@@ -116,7 +116,12 @@
   <!-- TIMER MODAL -->
   <div class="timer-overlay" id="rest-timer-overlay">
     <div class="timer-modal">
-      <div class="timer-title">Récupération</div>
+      <div class="timer-modal-header">
+        <div class="timer-title">Récupération</div>
+        <button class="timer-close-btn" id="rest-timer-stop">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
       <div class="timer-ring-wrap">
         <svg class="timer-svg" viewBox="0 0 120 120">
           <circle class="timer-track"    cx="60" cy="60" r="54"/>
@@ -127,8 +132,10 @@
         </div>
       </div>
       <div class="timer-actions">
-        <button class="timer-btn-stop"  id="rest-timer-stop">Arrêter</button>
-        <button class="timer-btn-pause" id="rest-timer-pause">Pause</button>
+        <button class="chrono-btn chrono-btn-main" id="rest-timer-pause">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          Arrêter
+        </button>
       </div>
     </div>
   </div>
@@ -185,12 +192,28 @@
       </div>
       <div id="tpl-picker-list" style="padding:8px 12px 4px;display:flex;flex-direction:column;gap:6px"></div>
       <div style="display:flex;gap:8px;padding:10px 12px 14px">
-        <button class="btn-secondary" style="flex:1" onclick="window.location.href='templates.html'">
-          <i data-lucide="layout-template"></i> Mes templates
+        <button class="btn-save-as-tpl" id="btn-save-as-tpl" style="flex:1">
+          <i data-lucide="bookmark"></i> Sauvegarder comme template
         </button>
         <button class="btn-primary" style="flex:1" onclick="window.location.href='templates.html?new=1'">
           <i data-lucide="plus"></i> Nouveau
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NOM TEMPLATE -->
+  <div class="modal-overlay" id="tpl-name-overlay">
+    <div class="modal" style="max-width:340px">
+      <div class="modal-header">
+        <h3>Nouveau template</h3>
+        <button class="modal-close" id="tpl-name-close"><i data-lucide="x"></i></button>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px">Donne un nom à ce template pour le retrouver facilement.</p>
+      <input type="text" id="tpl-name-input" placeholder="Ex : Push, Pull, Jambes…" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text);font-size:14px;outline:none">
+      <div class="modal-footer" style="margin-top:16px">
+        <button class="btn-secondary" id="tpl-name-cancel">Annuler</button>
+        <button class="btn-primary" id="tpl-name-confirm">Créer le template</button>
       </div>
     </div>
   </div>
@@ -341,32 +364,40 @@
 
     function parseTplData(t) {
       const raw = t.exercises;
-      if (Array.isArray(raw)) return { exercises: raw, emoms: [], cardios: [] };
-      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [], cardios: raw?.cardios || [] };
+      if (Array.isArray(raw)) return { exercises: raw, emoms: [], cardios: [], order: null };
+      return {
+        exercises: raw?.exercises || [],
+        emoms:     raw?.emoms    || [],
+        cardios:   raw?.cardios  || [],
+        order:     raw?.order    || null,
+      };
     }
 
-    function applyAllTemplates() {
-      closeTplPicker();
+    function loadTplIntoModal(d) {
       const container = document.getElementById('modal-exercises');
       container.innerHTML = '';
-      _tplList.forEach(t => {
-        const d = parseTplData(t);
-        d.exercises.forEach(e => addExercise(e));
-        d.emoms.forEach(e => addEmom(e));
-        d.cardios.forEach(c => addCardio(c));
+      const order = d.order || [
+        ...d.exercises.map((_,i) => ({ type:'exercise', idx:i })),
+        ...d.emoms.map((_,i)    => ({ type:'emom',     idx:i })),
+        ...d.cardios.map((_,i)  => ({ type:'cardio',   idx:i })),
+      ];
+      order.forEach(({ type, idx }) => {
+        if (type === 'exercise' && d.exercises[idx]) addExercise(d.exercises[idx]);
+        else if (type === 'emom' && d.emoms[idx])    addEmom(d.emoms[idx]);
+        else if (type === 'cardio' && d.cardios[idx]) addCardio(d.cardios[idx]);
       });
       lucide.createIcons();
     }
 
+    function applyAllTemplates() {
+      closeTplPicker();
+      document.getElementById('modal-exercises').innerHTML = '';
+      _tplList.forEach(t => loadTplIntoModal(parseTplData(t)));
+    }
+
     function applyTpl(idx) {
       closeTplPicker();
-      const container = document.getElementById('modal-exercises');
-      container.innerHTML = '';
-      const d = parseTplData(_tplList[idx]);
-      d.exercises.forEach(e => addExercise(e));
-      d.emoms.forEach(e => addEmom(e));
-      d.cardios.forEach(c => addCardio(c));
-      lucide.createIcons();
+      loadTplIntoModal(parseTplData(_tplList[idx]));
     }
 
     function closeTplPicker() {
@@ -402,6 +433,70 @@
     document.getElementById('tpl-picker-close').addEventListener('click', closeTplPicker);
     document.getElementById('tpl-picker-overlay').addEventListener('click', e => {
       if (e.target.id === 'tpl-picker-overlay') closeTplPicker();
+    });
+
+    // ── Sauvegarder la séance comme template ──────────────
+    let _pendingTplData = null;
+
+    function closeTplName() {
+      document.getElementById('tpl-name-overlay').classList.remove('open');
+      _pendingTplData = null;
+    }
+
+    document.getElementById('btn-save-as-tpl').addEventListener('click', () => {
+      const data = collectModalData();
+      if (!data.exercises.length && !data.emoms.length && !data.cardios.length) return;
+      _pendingTplData = data;
+      const parts = [
+        ...data.exercises.map(e => e.name),
+        ...data.emoms.map(em => `EMOM ${em.interval}s`),
+        ...data.cardios.map(c => c.name),
+      ];
+      const inp = document.getElementById('tpl-name-input');
+      inp.value = parts.slice(0, 3).join(', ');
+      document.getElementById('tpl-name-overlay').classList.add('open');
+      setTimeout(() => inp.focus(), 100);
+    });
+
+    document.getElementById('tpl-name-close').addEventListener('click', closeTplName);
+    document.getElementById('tpl-name-cancel').addEventListener('click', closeTplName);
+    document.getElementById('tpl-name-overlay').addEventListener('click', e => {
+      if (e.target.id === 'tpl-name-overlay') closeTplName();
+    });
+
+    document.getElementById('tpl-name-confirm').addEventListener('click', async () => {
+      const name = document.getElementById('tpl-name-input').value.trim();
+      if (!name || !_pendingTplData) return;
+
+      const btn = document.getElementById('tpl-name-confirm');
+      btn.disabled = true; btn.textContent = '…';
+
+      const { data: { user } } = await _supabase.auth.getUser();
+      const payload = {
+        exercises: _pendingTplData.exercises,
+        emoms:     _pendingTplData.emoms,
+        cardios:   _pendingTplData.cardios,
+        order:     _pendingTplData.order,
+      };
+
+      const { error } = await _supabase.from('workout_templates')
+        .insert({ owner_id: user.id, name, exercises: payload });
+
+      btn.disabled = false; btn.textContent = 'Créer le template';
+
+      if (!error) {
+        closeTplName();
+        // Toast de confirmation
+        const t = document.createElement('div');
+        t.textContent = '✓ Template créé';
+        t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;pointer-events:none';
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2500);
+      }
+    });
+
+    document.getElementById('tpl-name-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('tpl-name-confirm').click();
     });
 
     // Rafraîchit séances ET badge quand on revient sur la page (onglet, app en fond…)

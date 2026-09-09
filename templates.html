@@ -160,11 +160,18 @@
       const container = document.getElementById('modal-exercises');
       container.innerHTML = '';
 
-      const d = tpl ? parseTplData(tpl) : { exercises: [], emoms: [], cardios: [] };
+      const d = tpl ? parseTplData(tpl) : { exercises: [], emoms: [], cardios: [], order: null };
       if (d.exercises.length || d.emoms.length || d.cardios.length) {
-        d.exercises.forEach(e => addExercise(e));
-        d.emoms.forEach(e => addEmom(e));
-        d.cardios.forEach(c => addCardio(c));
+        const order = d.order || [
+          ...d.exercises.map((_,i) => ({ type:'exercise', idx:i })),
+          ...d.emoms.map((_,i)    => ({ type:'emom',     idx:i })),
+          ...d.cardios.map((_,i)  => ({ type:'cardio',   idx:i })),
+        ];
+        order.forEach(({ type, idx }) => {
+          if (type === 'exercise' && d.exercises[idx]) addExercise(d.exercises[idx]);
+          else if (type === 'emom' && d.emoms[idx])    addEmom(d.emoms[idx]);
+          else if (type === 'cardio' && d.cardios[idx]) addCardio(d.cardios[idx]);
+        });
       } else {
         addExercise();
       }
@@ -212,11 +219,16 @@
       lucide.createIcons();
     }
 
-    // exercises column stocke {exercises:[...], emoms:[...]} ou [] (ancien format)
+    // exercises column stocke {exercises:[...], emoms:[...], cardios:[...], order:[...]} ou [] (ancien format)
     function parseTplData(t) {
       const raw = t.exercises;
-      if (Array.isArray(raw)) return { exercises: raw, emoms: [], cardios: [] };
-      return { exercises: raw?.exercises || [], emoms: raw?.emoms || [], cardios: raw?.cardios || [] };
+      if (Array.isArray(raw)) return { exercises: raw, emoms: [], cardios: [], order: null };
+      return {
+        exercises: raw?.exercises || [],
+        emoms:     raw?.emoms    || [],
+        cardios:   raw?.cardios  || [],
+        order:     raw?.order    || null,
+      };
     }
 
     window.openTemplate = async function(id) {
@@ -286,8 +298,8 @@
       // Collecter les EMOMs
       const emoms = [];
       document.querySelectorAll('.emom-block').forEach(block => {
-        const interval = parseInt(block.querySelector('.emom-int-val').textContent)    || 60;
-        const rounds   = parseInt(block.querySelector('.emom-rounds-val').textContent) || 10;
+        const interval = mmssToSec(block.querySelector('.emom-int-val').value)         || 60;
+        const rounds   = parseInt(block.querySelector('.emom-rounds-val').value)       || 10;
         const exoRows  = [];
         block.querySelectorAll('.emom-exo-row').forEach(row => {
           const n = row.querySelector('.emom-exo-name').value.trim();
@@ -301,9 +313,10 @@
       const cardios = [];
       document.querySelectorAll('.cardio-block').forEach(block => {
         const name     = block.querySelector('.cardio-name').value.trim();
-        const durMin   = parseFloat(block.querySelector('.cardio-min-val').textContent)  || 0;
-        const durSec   = parseFloat(block.querySelector('.cardio-sec-val').textContent)  || 0;
-        const distance = parseFloat(block.querySelector('.cardio-dist-val').textContent) || null;
+        const totalSec = mmssToSec(block.querySelector('.cardio-dur-val').value);
+        const durMin   = Math.floor(totalSec / 60);
+        const durSec   = totalSec % 60;
+        const distance = parseFloat(block.querySelector('.cardio-dist-val').value) || null;
         if (name) cardios.push({ name, durMin, durSec, distance });
       });
 

@@ -213,6 +213,7 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.6px;
+  flex: 1;
 }
 
 /* ── RING ── */
@@ -266,44 +267,33 @@
   color: var(--text);
 }
 
-/* ── BUTTONS ── */
-.timer-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+/* ── HEADER ── */
+.timer-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
 }
 
-.timer-btn-stop {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 11px;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-
-.timer-btn-stop:hover { border-color: var(--text-muted); }
-
-.timer-btn-pause {
-  background: var(--accent);
+.timer-close-btn {
+  background: none;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 11px;
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  color: var(--text-muted);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.12s, background 0.12s;
+}
+.timer-close-btn:hover { color: var(--text); background: var(--surface-2); }
+
+/* ── BUTTONS ── */
+.timer-actions {
+  width: 100%;
 }
 
-.timer-btn-pause:hover { opacity: 0.85; }
-
-.timer-btn-pause.paused {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--accent);
+#rest-timer-pause.chrono-btn-main {
+  width: 100%;
+  padding: 13px;
 }

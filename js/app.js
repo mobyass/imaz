@@ -134,7 +134,14 @@ document.getElementById('cal-popup-overlay').addEventListener('click', e => {
 });
 
 // ── HOME PAGE ─────────────────────────────────────────────
+let _emomVisListeners = [];
+function _cleanEmomListeners() {
+  _emomVisListeners.forEach(fn => document.removeEventListener('visibilitychange', fn));
+  _emomVisListeners = [];
+}
+
 function renderSeancesDuJour() {
+  _cleanEmomListeners();
   const container = document.querySelector('.seance-today');
   const session   = getSessions()[todayKey];
   const settings  = getSettings();
@@ -150,7 +157,7 @@ function renderSeancesDuJour() {
     document.getElementById('btn-create-today')
       .addEventListener('click', () => openModal(todayKey));
 
-  } else if (session.exercises.length === 0) {
+  } else if (session.exercises.length === 0 && !(session.emoms?.length) && !(session.cardios?.length)) {
     container.innerHTML = `
       <div class="empty-icon"><i data-lucide="calendar-check"></i></div>
       <p>Séance planifiée — aucun exercice</p>
@@ -166,9 +173,13 @@ function renderSeancesDuJour() {
 
     if (isCompleted) {
       const totalSets = session.exercises.reduce((acc, e) => acc + normalizeSets(e).length, 0);
+      const summaryParts = [];
+      if (session.exercises.length > 0) summaryParts.push(`${session.exercises.length} exercice${session.exercises.length !== 1 ? 's' : ''} · ${totalSets} série${totalSets !== 1 ? 's' : ''}`);
+      if (session.emoms?.length) summaryParts.push(`${session.emoms.length} EMOM`);
+      if (session.cardios?.length) summaryParts.push(`${session.cardios.length} cardio`);
       container.innerHTML = `
         <div class="seance-complete-badge"><i data-lucide="check-circle"></i> Séance terminée</div>
-        <p class="seance-complete-summary">${session.exercises.length} exercice${session.exercises.length !== 1 ? 's' : ''} · ${totalSets} série${totalSets !== 1 ? 's' : ''}</p>
+        <p class="seance-complete-summary">${summaryParts.join(' · ') || 'Séance terminée'}</p>
         <div class="seance-today-actions">
           <button class="btn-secondary" id="btn-finish-seance">
             <i data-lucide="rotate-ccw"></i> Réouvrir
@@ -189,68 +200,90 @@ function renderSeancesDuJour() {
     const restHeaderCell = settings.restEnabled ? '<span>Récup</span>' : '';
     const logTableClass  = settings.restEnabled ? 'log-table' : 'log-table log-table--norest';
 
-    const emomsHTML = (session.emoms || []).map((em, emi) => {
-      const isDone = em.done === true;
-      return `
-        <div class="log-emom-block ${isDone ? 'done' : ''}" data-emi="${emi}">
-          <div class="log-emom-header">
-            <span class="log-emom-label"><i data-lucide="timer" style="width:14px;height:14px"></i> EMOM</span>
-            <span class="log-emom-meta">${em.interval}s × ${em.rounds} tours</span>
-            ${isDone ? '<span class="log-emom-done-badge"><i data-lucide="check-circle"></i> Terminé</span>' : ''}
-          </div>
-          <div class="log-emom-exos">
-            ${(em.exercises || []).map(ex => `<div class="log-emom-exo">• ${esc(ex.name)}${ex.reps ? ` × ${ex.reps}` : ''}</div>`).join('')}
-          </div>
-          ${!isDone ? `
-          <div class="log-emom-runner" style="display:none">
-            <div class="log-emom-time">00:00</div>
-            <div class="log-emom-round">Tour 0 / ${em.rounds}</div>
-          </div>
-          <div class="log-emom-actions">
-            <button class="log-emom-clear-btn chrono-btn chrono-btn-reset" style="display:none"><i data-lucide="rotate-ccw"></i> Effacer</button>
-            <button class="log-emom-main-btn chrono-btn chrono-btn-main"><i data-lucide="play"></i> Démarrer</button>
-          </div>` : ''}
+    // Construit le HTML de chaque item par type
+    const exoHTMLs = (session.exercises || []).map((e, ei) => {
+      const sets = normalizeSets(e);
+      return `<div class="seance-log-exo" data-exo="${ei}">
+        <div class="log-exo-header"><div class="log-exo-name">${esc(e.name)}</div></div>
+        <div class="${logTableClass}">
+          <div class="log-table-head"><span>Série</span><span>Rép</span><span>${wUnit}</span>${restHeaderCell}<span></span></div>
+          ${sets.map((s, si) => {
+            const done  = e.done && e.done[si] ? e.done[si] : {};
+            const isVal = done.validated === true;
+            const repsV = done.reps   !== undefined && done.reps   !== null ? done.reps   : (s.reps   ?? '');
+            const wgtV  = done.weight !== undefined && done.weight !== null ? done.weight : (s.weight ?? '');
+            const restCell = settings.restEnabled
+              ? `<button class="log-rest-btn" data-rest="${s.rest||0}">${formatRest(s.rest,settings)}</button>` : '';
+            return `<div class="log-table-row ${isVal?'validated':''}" data-rest="${s.rest||0}">
+              <span class="log-set-num">S${si+1}</span>
+              <input type="number" class="log-input log-reps-done" min="0" value="${repsV}" ${isVal?'readonly':''}>
+              <input type="number" class="log-input log-weight-done" min="0" step="0.5" value="${wgtV}" placeholder="—" ${isVal?'readonly':''}>
+              ${restCell}
+              <button class="log-validate-btn ${isVal?'done':''}"><i data-lucide="${isVal?'check-circle':'circle'}"></i></button>
+            </div>`;
+          }).join('')}
         </div>
-      `;
+      </div>`;
+    });
+
+    const emomHTMLs = (session.emoms || []).map((em, emi) => {
+      const isDone = em.done === true;
+      return `<div class="log-emom-block ${isDone?'done':''}" data-emi="${emi}">
+        <div class="log-emom-header">
+          <span class="log-emom-label"><i data-lucide="timer" style="width:14px;height:14px"></i> EMOM</span>
+          <span class="log-emom-meta">${em.interval}s × ${em.rounds} tours</span>
+          ${isDone?'<span class="log-emom-done-badge"><i data-lucide="check-circle"></i> Terminé</span>':''}
+        </div>
+        <div class="log-emom-exos">
+          ${(em.exercises||[]).map(ex=>`<div class="log-emom-exo">• ${esc(ex.name)}${ex.reps?` × ${ex.reps}`:''}</div>`).join('')}
+        </div>
+        ${!isDone?`<div class="log-emom-runner" style="display:none">
+          <div class="log-emom-time">00:00</div>
+          <div class="log-emom-round">Tour 0 / ${em.rounds}</div>
+        </div>
+        <div class="log-emom-actions">
+          <button class="log-emom-clear-btn chrono-btn chrono-btn-reset" style="display:none"><i data-lucide="rotate-ccw"></i> Effacer</button>
+          <button class="log-emom-main-btn chrono-btn chrono-btn-main"><i data-lucide="play"></i> Démarrer</button>
+        </div>`:''}
+      </div>`;
+    });
+
+    const cardioHTMLs = (session.cardios || []).map((c, ci) => {
+      const dur    = (c.durMin||c.durSec) ? `${c.durMin||0}min${c.durSec?` ${c.durSec}s`:''}` : null;
+      const dist   = c.distance ? `${c.distance} km` : null;
+      const sub    = [dur,dist].filter(Boolean).join(' · ');
+      const isDone = c.done === true;
+      return `<div class="seance-log-exo log-cardio-block ${isDone?'done':''}" data-ci="${ci}">
+        <div class="log-exo-header">
+          <div class="log-exo-name" style="display:flex;align-items:center;gap:6px">
+            <i data-lucide="activity" style="width:14px;height:14px;color:var(--accent)"></i>${esc(c.name)}
+          </div>
+          ${isDone?'<span class="log-emom-done-badge"><i data-lucide="check-circle"></i> Terminé</span>':''}
+        </div>
+        ${sub?`<div style="font-size:12px;color:var(--text-muted);padding:2px 2px 8px">${sub}</div>`:''}
+        ${!isDone?`<div class="log-emom-actions">
+          <button class="log-cardio-validate-btn chrono-btn chrono-btn-main paused">
+            <i data-lucide="check"></i> Valider
+          </button>
+        </div>`:''}
+      </div>`;
+    });
+
+    // Ordre des items (respecte l'ordre d'ajout si disponible)
+    const order = session.order || [
+      ...exoHTMLs.map((_,i) => ({ type:'exercise', idx:i })),
+      ...emomHTMLs.map((_,i) => ({ type:'emom', idx:i })),
+      ...cardioHTMLs.map((_,i) => ({ type:'cardio', idx:i })),
+    ];
+    const orderedHTML = order.map(({ type, idx }) => {
+      if (type === 'exercise') return exoHTMLs[idx] || '';
+      if (type === 'emom')     return emomHTMLs[idx] || '';
+      if (type === 'cardio')   return cardioHTMLs[idx] || '';
+      return '';
     }).join('');
 
     container.innerHTML = `
-      <div class="seance-log">
-        ${session.exercises.map((e, ei) => {
-          const sets = normalizeSets(e);
-          return `
-            <div class="seance-log-exo" data-exo="${ei}">
-              <div class="log-exo-header">
-                <div class="log-exo-name">${esc(e.name)}</div>
-              </div>
-              <div class="${logTableClass}">
-                <div class="log-table-head">
-                  <span>Série</span><span>Rép</span><span>${wUnit}</span>${restHeaderCell}<span></span>
-                </div>
-                ${sets.map((s, si) => {
-                  const done  = e.done && e.done[si] ? e.done[si] : {};
-                  const isVal = done.validated === true;
-                  const repsV = done.reps   !== undefined && done.reps   !== null ? done.reps   : (s.reps   ?? '');
-                  const wgtV  = done.weight !== undefined && done.weight !== null ? done.weight : (s.weight ?? '');
-                  const restCell = settings.restEnabled
-                    ? `<button class="log-rest-btn" data-rest="${s.rest || 0}">${formatRest(s.rest, settings)}</button>`
-                    : '';
-                  return `
-                    <div class="log-table-row ${isVal ? 'validated' : ''}" data-rest="${s.rest || 0}">
-                      <span class="log-set-num">S${si+1}</span>
-                      <input type="number" class="log-input log-reps-done" min="0" value="${repsV}" ${isVal ? 'readonly' : ''}>
-                      <input type="number" class="log-input log-weight-done" min="0" step="0.5" value="${wgtV}" placeholder="—" ${isVal ? 'readonly' : ''}>
-                      ${restCell}
-                      <button class="log-validate-btn ${isVal ? 'done' : ''}"><i data-lucide="${isVal ? 'check-circle' : 'circle'}"></i></button>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-        ${emomsHTML}
+      <div class="seance-log">${orderedHTML}</div>
       <div class="seance-today-actions">
         <button class="btn-secondary" id="btn-edit-today">
           <i data-lucide="pencil"></i> Modifier
@@ -305,11 +338,16 @@ function renderSeancesDuJour() {
       const timeEl   = block.querySelector('.log-emom-time');
       const roundEl  = block.querySelector('.log-emom-round');
 
-      let elapsed = 0, ticker = null, lastRound = -1;
+      const TIMER_SK = 'imaz_emom_running';
+      let startTs = null, ticker = null, lastRound = -1;
       let state = 'idle'; // idle | running | stopped | completed
 
       function fmt(s) {
+        s = Math.max(0, Math.floor(s));
         return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+      }
+      function getElapsed() {
+        return startTs ? (Date.now() - startTs) / 1000 : 0;
       }
       function beep(freq=880, dur=0.3) {
         try {
@@ -323,6 +361,30 @@ function renderSeancesDuJour() {
         } catch(e){}
       }
 
+      function tick() {
+        const elapsed = getElapsed();
+        const total   = em.rounds * em.interval;
+        timeEl.textContent = fmt(elapsed);
+        const cur = Math.floor(elapsed / em.interval);
+        roundEl.textContent = `Tour ${Math.min(cur, em.rounds)} / ${em.rounds}`;
+        if (cur !== lastRound && cur > 0) {
+          lastRound = cur;
+          if (cur <= em.rounds) beep();
+        }
+        if (elapsed >= total) {
+          clearInterval(ticker); ticker = null;
+          localStorage.removeItem(TIMER_SK);
+          state = 'completed';
+          timeEl.textContent = fmt(total);
+          roundEl.textContent = `Tour ${em.rounds} / ${em.rounds}`;
+          beep(880,0.2); setTimeout(()=>beep(660,0.4),250);
+          clearBtn.style.display = '';
+          mainBtn.innerHTML = '<i data-lucide="check"></i> Valider';
+          mainBtn.classList.add('paused');
+          lucide.createIcons();
+        }
+      }
+
       function setIdle() {
         state = 'idle';
         clearBtn.style.display = 'none';
@@ -331,45 +393,40 @@ function renderSeancesDuJour() {
         lucide.createIcons();
       }
 
-      function startEmom() {
+      function startEmom(savedTs = null) {
         state = 'running';
+        // Si on reprend depuis un état stopped, startTs était déjà calculé
+        if (savedTs) {
+          startTs = savedTs;
+        } else if (startTs === null) {
+          startTs = Date.now(); // départ de zéro
+        }
+        // Recalcule startTs pour tenir compte du temps déjà écoulé (reprise)
+        localStorage.setItem(TIMER_SK, JSON.stringify({ dateKey: todayKey, emi, startTs }));
         runner.style.display = '';
         clearBtn.style.display = 'none';
         mainBtn.innerHTML = '<i data-lucide="square"></i> Arrêter';
+        mainBtn.classList.remove('paused');
         lucide.createIcons();
-        beep();
-        ticker = setInterval(() => {
-          elapsed++;
-          timeEl.textContent = fmt(elapsed);
-          const cur = Math.floor(elapsed / em.interval);
-          roundEl.textContent = `Tour ${cur} / ${em.rounds}`;
-          if (cur !== lastRound) {
-            lastRound = cur;
-            if (cur > 0 && cur < em.rounds) beep();
-          }
-          if (elapsed >= em.rounds * em.interval) {
-            clearInterval(ticker);
-            state = 'completed';
-            beep(880,0.2); setTimeout(()=>beep(660,0.4),250);
-            clearBtn.style.display = '';
-            mainBtn.innerHTML = '<i data-lucide="check"></i> Valider';
-            mainBtn.classList.add('paused');
-            lucide.createIcons();
-          }
-        }, 1000);
+        if (!savedTs) beep();
+        tick();
+        ticker = setInterval(tick, 500);
       }
 
       function stopEmom() {
         state = 'stopped';
-        clearInterval(ticker);
+        clearInterval(ticker); ticker = null;
+        localStorage.removeItem(TIMER_SK);
         clearBtn.style.display = '';
         mainBtn.innerHTML = '<i data-lucide="play"></i> Démarrer';
         mainBtn.classList.remove('paused');
         lucide.createIcons();
+        // startTs est conservé pour reprendre où on s'est arrêté
       }
 
       function validateEmom() {
-        clearInterval(ticker);
+        clearInterval(ticker); ticker = null;
+        localStorage.removeItem(TIMER_SK);
         const all = getSessions();
         if (all[todayKey]?.emoms?.[emi]) {
           all[todayKey].emoms[emi].done = true;
@@ -381,23 +438,73 @@ function renderSeancesDuJour() {
         lucide.createIcons();
       }
 
+      // Reprend le chrono si on revient en foreground
+      function onVisible() {
+        if (state !== 'running') return;
+        clearInterval(ticker); ticker = null;
+        tick();
+        ticker = setInterval(tick, 500);
+      }
+      document.addEventListener('visibilitychange', onVisible);
+      _emomVisListeners.push(onVisible);
+
       mainBtn.addEventListener('click', () => {
         if (state === 'running')   { stopEmom(); return; }
         if (state === 'completed') { validateEmom(); return; }
-        // idle ou stopped → (re)démarrer
-        elapsed = 0; lastRound = -1;
-        timeEl.textContent  = '00:00';
-        roundEl.textContent = `Tour 0 / ${em.rounds}`;
+        if (state === 'idle') { startTs = null; lastRound = -1; }
         startEmom();
       });
 
       clearBtn.addEventListener('click', () => {
-        clearInterval(ticker);
-        elapsed = 0; lastRound = -1;
+        clearInterval(ticker); ticker = null;
+        localStorage.removeItem(TIMER_SK);
+        startTs = null; lastRound = -1;
         timeEl.textContent  = '00:00';
         roundEl.textContent = `Tour 0 / ${em.rounds}`;
         runner.style.display = 'none';
         setIdle();
+      });
+
+      // Restaure un chrono qui tournait (navigation / rechargement)
+      try {
+        const saved = JSON.parse(localStorage.getItem(TIMER_SK) || 'null');
+        if (saved && saved.dateKey === todayKey && saved.emi === emi) {
+          const elapsedNow = (Date.now() - saved.startTs) / 1000;
+          lastRound = Math.floor(elapsedNow / em.interval) - 1;
+          if (elapsedNow >= em.rounds * em.interval) {
+            // Terminé pendant qu'on était parti
+            startTs = saved.startTs;
+            state = 'completed';
+            runner.style.display = '';
+            timeEl.textContent = fmt(em.rounds * em.interval);
+            roundEl.textContent = `Tour ${em.rounds} / ${em.rounds}`;
+            localStorage.removeItem(TIMER_SK);
+            clearBtn.style.display = '';
+            mainBtn.innerHTML = '<i data-lucide="check"></i> Valider';
+            mainBtn.classList.add('paused');
+            lucide.createIcons();
+          } else {
+            startEmom(saved.startTs);
+          }
+        }
+      } catch(e) {}
+    });
+
+    // ── Cardio validate ──────────────────────────────────
+    container.querySelectorAll('.log-cardio-block').forEach(block => {
+      const ci  = parseInt(block.dataset.ci);
+      const btn = block.querySelector('.log-cardio-validate-btn');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        const all = getSessions();
+        if (all[todayKey]?.cardios?.[ci]) {
+          all[todayKey].cardios[ci].done = true;
+          localStorage.setItem('imaz_sessions', JSON.stringify(all));
+          if (typeof syncSessionToSupabase === 'function')
+            syncSessionToSupabase(todayKey, all[todayKey]);
+        }
+        renderSeancesDuJour();
+        lucide.createIcons();
       });
     });
 
@@ -418,8 +525,13 @@ function renderSeancesAvenir() {
   }
 
   container.innerHTML = future.map(key => {
-    const count    = getSessions()[key].exercises.length;
-    const subtitle = count === 0 ? 'Séance planifiée' : `${count} exercice${count > 1 ? 's' : ''}`;
+    const s     = getSessions()[key];
+    const parts = [
+      ...(s.exercises || []).map(e => e.name).filter(Boolean),
+      ...(s.emoms     || []).map(em => `EMOM ${em.interval}s`),
+      ...(s.cardios   || []).map(c => c.name).filter(Boolean),
+    ];
+    const subtitle = parts.length > 0 ? parts.join(', ') : 'Séance planifiée';
     return `
       <div class="seance-card" data-key="${key}">
         <div class="seance-icon"><i data-lucide="dumbbell"></i></div>

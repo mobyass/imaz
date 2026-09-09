@@ -379,8 +379,12 @@ checkAuth().then(async (user) => {
       function athleteRow(r) {
         const s   = r.data;
         const key = r.date_key;
-        const exoNames = s.exercises ? s.exercises.map(e => e.name).filter(Boolean) : [];
-        const sub   = exoNames.length > 0 ? exoNames.join(', ') : 'Séance planifiée';
+        const parts = [
+          ...(s.exercises || []).map(e => e.name).filter(Boolean),
+          ...(s.emoms     || []).map(em => `EMOM ${em.interval}s`),
+          ...(s.cardios   || []).map(c => c.name).filter(Boolean),
+        ];
+        const sub = parts.length > 0 ? parts.join(', ') : 'Séance planifiée';
         const badge = s.completed ? ' <span class="activites-badge">✓</span>' : '';
         const dataAttr = encodeURIComponent(JSON.stringify(s));
         return `

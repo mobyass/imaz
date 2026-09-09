@@ -13,16 +13,20 @@ function openModal(dateKey) {
   const container = document.getElementById('modal-exercises');
   container.innerHTML = '';
 
-  if (existing && existing.exercises.length > 0) {
-    existing.exercises.forEach(e => addExercise(e));
-  }
-
-  if (existing && existing.emoms) {
-    existing.emoms.forEach(e => addEmom(e));
-  }
-
-  if (existing && existing.cardios) {
-    existing.cardios.forEach(c => addCardio(c));
+  if (existing) {
+    const exos    = existing.exercises || [];
+    const emoms   = existing.emoms    || [];
+    const cardios = existing.cardios  || [];
+    const order   = existing.order || [
+      ...exos.map((_,i)    => ({ type:'exercise', idx:i })),
+      ...emoms.map((_,i)   => ({ type:'emom',     idx:i })),
+      ...cardios.map((_,i) => ({ type:'cardio',   idx:i })),
+    ];
+    order.forEach(({ type, idx }) => {
+      if (type === 'exercise' && exos[idx])    addExercise(exos[idx]);
+      else if (type === 'emom' && emoms[idx])  addEmom(emoms[idx]);
+      else if (type === 'cardio' && cardios[idx]) addCardio(cardios[idx]);
+    });
   }
 
   document.getElementById('modal-overlay').classList.add('open');
@@ -104,8 +108,6 @@ function addExercise(data = {}) {
 
   const uniformRestSec     = sets.length > 0 ? (sets[0].rest || 0) : 0;
   const uniformRestDisplay = secToDisplay(uniformRestSec, settings);
-  const restPlaceholder    = '';
-  const restStep           = settings.restUnit === 'min' ? 'step="0.5"' : '';
   const globalWeight       = sets.length > 0 ? (sets[0].weight ?? '') : (data.weight ?? '');
 
   const item = document.createElement('div');
@@ -113,9 +115,15 @@ function addExercise(data = {}) {
 
   const restFieldHTML = settings.restEnabled ? `
     <div class="exo-field">
-      <label>Récup (${settings.restUnit})</label>
-      <input type="number" min="0" ${restStep} class="exo-rest"
-        placeholder="${restPlaceholder}" value="${uniformRestDisplay || ''}">
+      <label>Récup</label>
+      ${settings.restUnit === 'min' ? `
+        <div class="rest-counter">
+          <button type="button" class="rest-counter-btn rest-counter-minus">−</button>
+          <input type="text" inputmode="numeric" class="exo-rest rest-time-input"
+            value="${uniformRestDisplay || '00:00'}" placeholder="00:00">
+          <button type="button" class="rest-counter-btn rest-counter-plus">+</button>
+        </div>
+      ` : `<input type="number" min="0" class="exo-rest" placeholder="" value="${uniformRestDisplay || ''}">`}
     </div>
   ` : '';
 
@@ -140,7 +148,7 @@ function addExercise(data = {}) {
         <div class="exo-field">
           <label>Séries</label>
           <input type="number" min="1" class="exo-series" placeholder="4"
-            value="${sets.length > 0 ? sets.length : ''}">
+            value="${sets.length > 1 ? sets.length : (sets.length === 1 && (sets[0].reps || sets[0].weight != null) ? 1 : '')}">
         </div>
         <div class="exo-field">
           <label>Rép</label>
@@ -220,8 +228,8 @@ function addExercise(data = {}) {
       item.querySelector('.exo-reps').value = rows[0].querySelector('.set-reps').value;
       const restEl = item.querySelector('.exo-rest');
       if (restEl) {
-        const rawSec = parseInt(rows[0].querySelector('.set-rest')?.value) || 0;
-        restEl.value = secToDisplay(rawSec, settings) || '';
+        const rawSec = displayToSec(rows[0].querySelector('.set-rest')?.value, settings) || 0;
+        restEl.value = secToDisplay(rawSec, settings) || (settings.restUnit === 'min' ? '00:00' : '');
       }
       item.querySelector('.exo-weight').value = rows[0].querySelector('.set-weight').value || '';
     }
@@ -236,12 +244,35 @@ function addExercise(data = {}) {
     if (rows.length > 0) {
       const last = rows[rows.length - 1];
       reps   = last.querySelector('.set-reps').value   || null;
-      rest   = last.querySelector('.set-rest')?.value  || null;
+      const restRaw = last.querySelector('.set-rest')?.value || null;
+      rest   = restRaw !== null ? displayToSec(restRaw, settings) : null;
       weight = last.querySelector('.set-weight').value || null;
     }
     addSetRow(list, reps, rest, weight, false);
     lucide.createIcons();
   });
+
+  if (settings.restUnit === 'min') {
+    item.addEventListener('click', e => {
+      const btn = e.target.closest('.rest-counter-btn');
+      if (!btn) return;
+      const inp = btn.closest('.rest-counter').querySelector('.exo-rest, .set-rest');
+      if (!inp) return;
+      const sec = displayToSec(inp.value, settings);
+      const newSec = btn.classList.contains('rest-counter-minus')
+        ? Math.max(0, sec - 10) : Math.min(3600, sec + 10);
+      inp.value = secToDisplay(newSec, settings);
+      if (inp.classList.contains('exo-rest')) {
+        item.querySelectorAll('.set-rest').forEach(sr => { sr.value = secToDisplay(newSec, settings); });
+      }
+    });
+
+    item.addEventListener('blur', e => {
+      if (!e.target.classList.contains('rest-time-input')) return;
+      const sec = displayToSec(e.target.value, settings);
+      e.target.value = secToDisplay(Math.max(0, sec || 0), settings) || '00:00';
+    }, true);
+  }
 
   container.appendChild(item);
   lucide.createIcons();
@@ -257,14 +288,19 @@ function addSetRow(list, repsVal, restValSec, weightVal, isBodyweight) {
   const row = document.createElement('div');
   row.classList.add('set-row');
   if (!settings.restEnabled) row.classList.add('no-rest');
+  if (settings.restUnit === 'min') row.classList.add('rest-min-mode');
 
-  const restCellHTML = settings.restEnabled ? `
+  const restCellHTML = settings.restEnabled ? (settings.restUnit === 'min' ? `
+    <div class="set-field set-rest-col set-rest-col--min">
+      <input type="text" inputmode="numeric" class="set-rest rest-time-input"
+        value="${restDisplay || '00:00'}" placeholder="00:00">
+    </div>
+  ` : `
     <div class="set-field set-rest-col">
-      <input type="number" min="0" ${settings.restUnit === 'min' ? 'step="0.5"' : ''} class="set-rest"
-        placeholder="" value="${restDisplay}">
+      <input type="number" min="0" class="set-rest" placeholder="" value="${restDisplay}">
       <span>${settings.restUnit}</span>
     </div>
-  ` : `<input type="hidden" class="set-rest" value="${restValSec ?? 0}">`;
+  `) : `<input type="hidden" class="set-rest" value="${restValSec ?? 0}">`;
 
   row.innerHTML = `
     <span class="set-num">S${num}</span>
@@ -291,6 +327,41 @@ function addSetRow(list, repsVal, restValSec, weightVal, isBodyweight) {
 
 function renumberSets(list) {
   list.querySelectorAll('.set-num').forEach((el, i) => el.textContent = `S${i + 1}`);
+}
+
+// ── MM:SS HELPERS ────────────────────────────────────────
+function secToMmss(sec) {
+  const s = Math.round(Math.max(0, sec || 0));
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+
+function mmssToSec(val) {
+  const str = String(val || '').trim();
+  if (str.includes(':')) {
+    const [m, s] = str.split(':');
+    return (parseInt(m) || 0) * 60 + (parseInt(s) || 0);
+  }
+  return parseInt(str) || 0;
+}
+
+function attachMmssProtection(inp) {
+  inp.addEventListener('keydown', e => {
+    const pos = inp.selectionStart;
+    const end = inp.selectionEnd;
+    if ((e.key === 'Backspace' && pos === 3 && end === 3) ||
+        (e.key === 'Delete'    && pos === 2 && end === 2)) {
+      e.preventDefault();
+    }
+  });
+  inp.addEventListener('input', () => {
+    if (!inp.value.includes(':')) {
+      const digits = inp.value.replace(/\D/g, '').padStart(4, '0').slice(-4);
+      inp.value = digits.slice(0, 2) + ':' + digits.slice(2);
+    }
+  });
+  inp.addEventListener('blur', () => {
+    inp.value = secToMmss(mmssToSec(inp.value));
+  });
 }
 
 // ── CARDIO BLOCK ─────────────────────────────────────────
@@ -322,27 +393,18 @@ function addCardio(data = {}) {
     <div class="emom-block-settings">
       <div class="emom-setting">
         <span>Durée</span>
-        <div class="emom-counter">
-          <button class="emom-counter-btn cardio-min-minus">−</button>
-          <span class="emom-counter-val cardio-min-val">${durMin || 0}</span>
-          <span class="emom-counter-unit">min</span>
-          <button class="emom-counter-btn cardio-min-plus">+</button>
-        </div>
-      </div>
-      <div class="emom-setting">
-        <span>Secondes</span>
-        <div class="emom-counter">
-          <button class="emom-counter-btn cardio-sec-minus">−</button>
-          <span class="emom-counter-val cardio-sec-val">${durSec || 0}</span>
-          <span class="emom-counter-unit">s</span>
-          <button class="emom-counter-btn cardio-sec-plus">+</button>
+        <div class="rest-counter">
+          <button class="emom-counter-btn cardio-dur-minus">−</button>
+          <input type="text" inputmode="numeric" class="rest-time-input cardio-dur-val"
+            value="${secToMmss((durMin || 0) * 60 + (durSec || 0))}" placeholder="00:00">
+          <button class="emom-counter-btn cardio-dur-plus">+</button>
         </div>
       </div>
       <div class="emom-setting">
         <span>Distance</span>
         <div class="emom-counter">
           <button class="emom-counter-btn cardio-dist-minus">−</button>
-          <span class="emom-counter-val cardio-dist-val">${distance || 0}</span>
+          <input type="number" class="emom-counter-val cardio-dist-val" value="${distance || 0}" min="0" max="200" step="0.1">
           <span class="emom-counter-unit">km</span>
           <button class="emom-counter-btn cardio-dist-plus">+</button>
         </div>
@@ -355,18 +417,35 @@ function addCardio(data = {}) {
     this.classList.remove('input-error');
   });
 
+  const durInp = block.querySelector('.cardio-dur-val');
+  attachMmssProtection(durInp);
+  block.querySelector('.cardio-dur-minus').addEventListener('click', () => {
+    durInp.value = secToMmss(Math.max(0, mmssToSec(durInp.value) - 10));
+  });
+  block.querySelector('.cardio-dur-plus').addEventListener('click', () => {
+    durInp.value = secToMmss(Math.min(36000, mmssToSec(durInp.value) + 10));
+  });
+
   function makeCardioCounter(minusSel, plusSel, valSel, min, max, step) {
-    let v = parseFloat(block.querySelector(valSel).textContent) || 0;
+    const el = block.querySelector(valSel);
+    function getV() { return parseFloat(el.value) || 0; }
+    function setV(v) { el.value = v; }
     block.querySelector(minusSel).addEventListener('click', () => {
-      if (v - step >= min) { v = Math.round((v - step) * 10) / 10; block.querySelector(valSel).textContent = v; }
+      let v = getV();
+      if (v - step >= min) setV(Math.round((v - step) * 10) / 10);
     });
     block.querySelector(plusSel).addEventListener('click', () => {
-      if (v + step <= max) { v = Math.round((v + step) * 10) / 10; block.querySelector(valSel).textContent = v; }
+      let v = getV();
+      if (v + step <= max) setV(Math.round((v + step) * 10) / 10);
+    });
+    el.addEventListener('change', () => {
+      let v = parseFloat(el.value);
+      if (isNaN(v) || v < min) v = min;
+      if (v > max) v = max;
+      setV(Math.round(v * 10) / 10);
     });
   }
-  makeCardioCounter('.cardio-min-minus', '.cardio-min-plus', '.cardio-min-val',   0, 600, 1);
-  makeCardioCounter('.cardio-sec-minus', '.cardio-sec-plus', '.cardio-sec-val',   0,  55, 5);
-  makeCardioCounter('.cardio-dist-minus','.cardio-dist-plus','.cardio-dist-val',  0, 200, 0.1);
+  makeCardioCounter('.cardio-dist-minus', '.cardio-dist-plus', '.cardio-dist-val', 0, 200, 0.1);
 
   container.appendChild(block);
   lucide.createIcons();
@@ -391,10 +470,10 @@ function addEmom(data = {}) {
     <div class="emom-block-settings">
       <div class="emom-setting">
         <span>Intervalle</span>
-        <div class="emom-counter">
+        <div class="rest-counter">
           <button class="emom-counter-btn emom-int-minus">−</button>
-          <span class="emom-counter-val emom-int-val">${interval}</span>
-          <span class="emom-counter-unit">sec</span>
+          <input type="text" inputmode="numeric" class="rest-time-input emom-int-val"
+            value="${secToMmss(interval)}" placeholder="00:00">
           <button class="emom-counter-btn emom-int-plus">+</button>
         </div>
       </div>
@@ -402,7 +481,7 @@ function addEmom(data = {}) {
         <span>Tours</span>
         <div class="emom-counter">
           <button class="emom-counter-btn emom-rounds-minus">−</button>
-          <span class="emom-counter-val emom-rounds-val">${rounds}</span>
+          <input type="number" class="emom-counter-val emom-rounds-val" value="${rounds}" min="1" max="60">
           <button class="emom-counter-btn emom-rounds-plus">+</button>
         </div>
       </div>
@@ -425,9 +504,8 @@ function addEmom(data = {}) {
           <input class="emom-exo-reps" type="number" min="1" placeholder="0" value="${reps}">
         </div>
       </div>
-      <button class="exo-remove-btn emom-exo-remove"><i data-lucide="x"></i></button>
     `;
-    row.querySelector('.emom-exo-remove').addEventListener('click', () => row.remove());
+    // no per-row delete — the block-level trash removes the whole EMOM
     row.querySelector('.emom-exo-name').addEventListener('input', function() {
       this.classList.remove('input-error');
       if (!document.querySelector('.emom-exo-name.input-error') && !document.querySelector('.exo-name-input.input-error'))
@@ -440,84 +518,119 @@ function addEmom(data = {}) {
   exos.forEach(e => addEmomExo(e.name, e.reps));
   block.querySelector('.emom-remove-btn').addEventListener('click', () => block.remove());
 
-  // Compteurs intervalle / tours
+  // Compteur intervalle (MM:SS, step 5s)
+  const intInp = block.querySelector('.emom-int-val');
+  attachMmssProtection(intInp);
+  block.querySelector('.emom-int-minus').addEventListener('click', () => {
+    intInp.value = secToMmss(Math.max(5, mmssToSec(intInp.value) - 5));
+  });
+  block.querySelector('.emom-int-plus').addEventListener('click', () => {
+    intInp.value = secToMmss(Math.min(300, mmssToSec(intInp.value) + 5));
+  });
+
+  // Compteur tours (nombre simple)
   function makeCounter(minusSel, plusSel, valSel, min, max, step) {
-    let v = parseInt(block.querySelector(valSel).textContent);
+    const el = block.querySelector(valSel);
+    function getV() { return parseInt(el.value) || min; }
+    function setV(v) { el.value = v; }
     block.querySelector(minusSel).addEventListener('click', () => {
-      if (v > min) { v -= step; block.querySelector(valSel).textContent = v; }
+      let v = getV();
+      if (v - step >= min) setV(v - step);
     });
     block.querySelector(plusSel).addEventListener('click', () => {
-      if (v < max) { v += step; block.querySelector(valSel).textContent = v; }
+      let v = getV();
+      if (v + step <= max) setV(v + step);
+    });
+    el.addEventListener('change', () => {
+      let v = parseInt(el.value);
+      if (isNaN(v) || v < min) v = min;
+      if (v > max) v = max;
+      setV(v);
     });
   }
-  makeCounter('.emom-int-minus',    '.emom-int-plus',    '.emom-int-val',    5,  300, 5);
-  makeCounter('.emom-rounds-minus', '.emom-rounds-plus', '.emom-rounds-val', 1,  60,  1);
+  makeCounter('.emom-rounds-minus', '.emom-rounds-plus', '.emom-rounds-val', 1, 60, 1);
 
   container.appendChild(block);
   lucide.createIcons();
 }
 
+// ── COLLECT MODAL DATA ───────────────────────────────────
+function collectModalData() {
+  const settings  = getSettings();
+  const exercises = [], emoms = [], cardios = [], order = [];
+
+  document.querySelectorAll('#modal-exercises > *').forEach(el => {
+    if (el.classList.contains('exo-item')) {
+      const name     = el.querySelector('.exo-name-input').value.trim();
+      const isCustom = !el.querySelector('.exo-sets-custom').hidden;
+      let   sets     = [];
+      if (isCustom) {
+        el.querySelectorAll('.set-row').forEach(row => {
+          const restEl  = row.querySelector('.set-rest');
+          const restSec = settings.restEnabled
+            ? displayToSec(restEl?.value, settings)
+            : (parseInt(restEl?.value) || 0);
+          sets.push({
+            reps:   parseInt(row.querySelector('.set-reps').value)     || 0,
+            rest:   restSec,
+            weight: parseFloat(row.querySelector('.set-weight').value) || null,
+          });
+        });
+      } else {
+        const count  = parseInt(el.querySelector('.exo-series').value) || 0;
+        const reps   = parseInt(el.querySelector('.exo-reps').value)   || 0;
+        const restEl = el.querySelector('.exo-rest');
+        const rest   = restEl ? displayToSec(restEl.value, settings) : 0;
+        const weight = parseFloat(el.querySelector('.exo-weight').value) || null;
+        for (let i = 0; i < count; i++) sets.push({ reps, rest, weight });
+      }
+      if (name && sets.length > 0) {
+        order.push({ type: 'exercise', idx: exercises.length });
+        exercises.push({ name, bodyweight: false, sets });
+      }
+    } else if (el.classList.contains('cardio-block')) {
+      const name     = el.querySelector('.cardio-name').value.trim();
+      const totalSec = mmssToSec(el.querySelector('.cardio-dur-val').value);
+      const durMin   = Math.floor(totalSec / 60);
+      const durSec   = totalSec % 60;
+      const distance = parseFloat(el.querySelector('.cardio-dist-val').value) || null;
+      if (name) {
+        order.push({ type: 'cardio', idx: cardios.length });
+        cardios.push({ name, durMin, durSec, distance });
+      }
+    } else if (el.classList.contains('emom-block')) {
+      const interval = mmssToSec(el.querySelector('.emom-int-val').value) || 60;
+      const rounds   = parseInt(el.querySelector('.emom-rounds-val').value) || 10;
+      const exoRows  = [];
+      el.querySelectorAll('.emom-exo-row').forEach(row => {
+        const name = row.querySelector('.emom-exo-name').value.trim();
+        const reps = parseInt(row.querySelector('.emom-exo-reps')?.value) || 0;
+        if (name) exoRows.push({ name, reps });
+      });
+      if (exoRows.length > 0) {
+        order.push({ type: 'emom', idx: emoms.length });
+        emoms.push({ interval, rounds, exercises: exoRows });
+      }
+    }
+  });
+
+  return { exercises, emoms, cardios, order };
+}
+
 // ── SAVE ─────────────────────────────────────────────────
 function saveModal() {
-  const settings  = getSettings();
-  const exercises = [];
-  let   hasError  = false;
+  let hasError = false;
 
+  // Validation noms exercices
   document.querySelectorAll('.exo-item').forEach(item => {
     const nameInput = item.querySelector('.exo-name-input');
-    if (!nameInput.value.trim()) {
-      nameInput.classList.add('input-error');
-      hasError = true;
-    } else {
-      nameInput.classList.remove('input-error');
-    }
+    if (!nameInput.value.trim()) { nameInput.classList.add('input-error'); hasError = true; }
+    else nameInput.classList.remove('input-error');
   });
-
-  if (hasError) {
-    const err = document.getElementById('modal-save-error');
-    err.textContent = 'Certains exercices n\'ont pas de nom.';
-    err.hidden = false;
-    return;
-  }
-
-  document.querySelectorAll('.exo-item').forEach(item => {
-    const name     = item.querySelector('.exo-name-input').value.trim();
-    const isCustom = !item.querySelector('.exo-sets-custom').hidden;
-    let   sets     = [];
-
-    if (isCustom) {
-      item.querySelectorAll('.set-row').forEach(row => {
-        const restEl  = row.querySelector('.set-rest');
-        const restSec = settings.restEnabled
-          ? displayToSec(restEl?.value, settings)
-          : (parseInt(restEl?.value) || 0);
-        sets.push({
-          reps:   parseInt(row.querySelector('.set-reps').value)    || 0,
-          rest:   restSec,
-          weight: parseFloat(row.querySelector('.set-weight').value) || null,
-        });
-      });
-    } else {
-      const count  = parseInt(item.querySelector('.exo-series').value) || 0;
-      const reps   = parseInt(item.querySelector('.exo-reps').value)   || 0;
-      const restEl = item.querySelector('.exo-rest');
-      const rest   = restEl ? displayToSec(restEl.value, settings) : 0;
-      const weight = parseFloat(item.querySelector('.exo-weight').value) || null;
-      for (let i = 0; i < count; i++) sets.push({ reps, rest, weight });
-    }
-
-    if (name && sets.length > 0) exercises.push({ name, bodyweight: false, sets });
-  });
-
   document.querySelectorAll('.emom-exo-name').forEach(input => {
-    if (!input.value.trim()) {
-      input.classList.add('input-error');
-      hasError = true;
-    } else {
-      input.classList.remove('input-error');
-    }
+    if (!input.value.trim()) { input.classList.add('input-error'); hasError = true; }
+    else input.classList.remove('input-error');
   });
-
   if (hasError) {
     const err = document.getElementById('modal-save-error');
     err.textContent = 'Certains exercices n\'ont pas de nom.';
@@ -525,30 +638,10 @@ function saveModal() {
     return;
   }
 
-  const emoms = [];
-  document.querySelectorAll('.emom-block:not(.cardio-block)').forEach(block => {
-    const interval = parseInt(block.querySelector('.emom-int-val').textContent)    || 60;
-    const rounds   = parseInt(block.querySelector('.emom-rounds-val').textContent) || 10;
-    const exoRows  = [];
-    block.querySelectorAll('.emom-exo-row').forEach(row => {
-      const name = row.querySelector('.emom-exo-name').value.trim();
-      const reps = parseInt(row.querySelector('.emom-exo-reps')?.value) || 0;
-      if (name) exoRows.push({ name, reps });
-    });
-    if (exoRows.length > 0) emoms.push({ interval, rounds, exercises: exoRows });
-  });
-
-  const cardios = [];
-  document.querySelectorAll('.cardio-block').forEach(block => {
-    const name     = block.querySelector('.cardio-name').value.trim();
-    const durMin   = parseFloat(block.querySelector('.cardio-min-val').textContent)  || 0;
-    const durSec   = parseFloat(block.querySelector('.cardio-sec-val').textContent)  || 0;
-    const distance = parseFloat(block.querySelector('.cardio-dist-val').textContent) || null;
-    if (name) cardios.push({ name, durMin, durSec, distance });
-  });
+  const { exercises, emoms, cardios, order } = collectModalData();
 
   addToExoHistory(exercises.map(e => e.name));
-  persistSession(modalDateKey, exercises, emoms, cardios);
+  persistSession(modalDateKey, exercises, emoms, cardios, order);
   closeModal();
   renderWeek();
   refreshHome();
@@ -566,7 +659,8 @@ function saveLogData(dateKey) {
   const logContainer = document.querySelector('.seance-today .seance-log');
   if (!logContainer) return;
 
-  logContainer.querySelectorAll('.seance-log-exo').forEach((exoEl, ei) => {
+  logContainer.querySelectorAll('.seance-log-exo[data-exo]').forEach((exoEl) => {
+    const ei = parseInt(exoEl.dataset.exo);
     if (!session.exercises[ei]) return;
     session.exercises[ei].done = Array.from(exoEl.querySelectorAll('.log-table-row')).map(row => {
       const repsEl = row.querySelector('.log-reps-done');
