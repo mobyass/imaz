@@ -144,12 +144,12 @@ function addExercise(data = {}) {
       <div class="${colClass}">
         <div class="exo-field">
           <label>Séries</label>
-          <input type="number" min="1" class="exo-series" placeholder="4"
+          <input type="number" inputmode="numeric" min="1" class="exo-series" placeholder="4"
             value="${sets.length > 1 ? sets.length : (sets.length === 1 && (sets[0].reps || sets[0].weight != null) ? 1 : '')}">
         </div>
         <div class="exo-field">
           <label>Rép</label>
-          <input type="number" min="1" class="exo-reps" placeholder="10"
+          <input type="number" inputmode="numeric" min="1" class="exo-reps" placeholder="10"
             value="${sets.length > 0 ? (sets[0].reps || '') : ''}">
         </div>
         <div class="exo-field">
@@ -296,7 +296,7 @@ function addSetRow(list, repsVal, restValSec, weightVal, isBodyweight) {
     <div class="set-row-main">
       <span class="set-num">S${num}</span>
       <div class="set-field">
-        <input type="number" min="10" class="set-reps" placeholder="10" value="${repsVal || ''}">
+        <input type="number" inputmode="numeric" min="0" class="set-reps" placeholder="0" value="${repsVal || ''}">
         <span class="set-unit">rép</span>
       </div>
       <div class="set-field set-weight-col">
@@ -666,6 +666,7 @@ function saveLogData(dateKey) {
   });
 
   localStorage.setItem('imaz_sessions', JSON.stringify(sessions));
+  if (typeof syncSessionToSupabase === 'function') syncSessionToSupabase(dateKey, sessions[dateKey]);
 }
 
 function openSessionViewModal(dateKey) {

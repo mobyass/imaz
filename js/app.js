@@ -216,8 +216,8 @@ function renderSeancesDuJour() {
               ? `<button class="log-rest-btn" data-rest="${s.rest||0}">${formatRest(s.rest,settings)}</button>` : '';
             return `<div class="log-table-row ${isVal?'validated':''}" data-rest="${s.rest||0}">
               <span class="log-set-num">S${si+1}</span>
-              <input type="number" class="log-input log-reps-done" min="0" value="${repsV}" ${isVal?'readonly':''}>
-              <input type="number" class="log-input log-weight-done" min="0" step="0.5" value="${wgtV}" placeholder="—" ${isVal?'readonly':''}>
+              <input type="number" inputmode="numeric" class="log-input log-reps-done" min="0" value="${repsV}" ${isVal?'readonly':''}>
+              <input type="number" inputmode="decimal" class="log-input log-weight-done" min="0" step="0.5" value="${wgtV}" placeholder="—" ${isVal?'readonly':''}>
               ${restCell}
               <button class="log-validate-btn ${isVal?'done':''}"><i data-lucide="${isVal?'check-circle':'circle'}"></i></button>
             </div>`;
