@@ -140,3 +140,12 @@ function allSetsIdentical(sets) {
   return sets.length <= 1 ||
     sets.every(s => s.reps === sets[0].reps && s.rest === sets[0].rest && s.weight === sets[0].weight);
 }
+
+// ── SELECT ALL ON FOCUS (mobile cursor fix) ───────────────
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if (el.tagName !== 'INPUT') return;
+  if (el.type === 'checkbox' || el.type === 'radio' || el.type === 'file') return;
+  // Defer to let iOS/Android finish placing the cursor, then select all
+  setTimeout(() => el.select(), 0);
+});
