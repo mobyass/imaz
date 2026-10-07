@@ -380,6 +380,32 @@
   <!-- Off-screen card for PNG export -->
   <div id="export-card"></div>
 
+  <!-- ── EXPORT OPTIONS OVERLAY ── -->
+  <div class="modal-overlay" id="export-opt-overlay">
+    <div style="background:var(--surface);border-radius:var(--radius);width:calc(100% - 32px);max-width:340px;padding:20px 16px 16px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px">Options de l'image</div>
+
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
+        <span style="font-size:14px;font-weight:600">Afficher la date</span>
+        <input type="checkbox" id="opt-show-date" checked style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">
+      </label>
+
+      <div id="opt-custom-text-row" style="padding:12px 0;border-bottom:1px solid var(--border);display:none">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">Texte à la place de la date</div>
+        <input type="text" id="opt-custom-text" maxlength="40"
+          placeholder="Push Day, Séance 1…"
+          style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:14px;color:var(--text);font-family:inherit;outline:none;box-sizing:border-box">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn-secondary" style="flex:1" id="export-opt-cancel">Annuler</button>
+        <button class="btn-primary" style="flex:1" id="export-opt-go">
+          <i data-lucide="download"></i> Générer
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── TEMPLATE PICKER ── -->
   <div class="modal-overlay" id="tpl-picker-overlay">
     <div class="modal">
@@ -575,7 +601,7 @@
           item.querySelectorAll('.set-row').forEach(row => {
             const restEl  = row.querySelector('.set-rest');
             const restSec = settings.restEnabled
-              ? displayToSec(restEl?.value, settings)
+              ? mmssToSec(restEl?.value || '0:0')
               : (parseInt(restEl?.value) || 0);
             sets.push({
               reps:   parseInt(row.querySelector('.set-reps').value)    || 0,
@@ -587,7 +613,7 @@
           const count  = parseInt(item.querySelector('.exo-series').value) || 0;
           const reps   = parseInt(item.querySelector('.exo-reps').value)   || 0;
           const restEl = item.querySelector('.exo-rest');
-          const rest   = restEl ? displayToSec(restEl.value, settings) : 0;
+          const rest   = restEl ? mmssToSec(restEl.value) : 0;
           const weight = parseFloat(item.querySelector('.exo-weight').value) || null;
           for (let i = 0; i < count; i++) sets.push({ reps, rest, weight });
         }
@@ -846,69 +872,124 @@
     });
 
     // ── PNG EXPORT ─────────────────────────────────────────
-    function buildExportCard(sessionData) {
+    function buildExportCard(sessionData, opts = {}) {
       const { exercises, emoms, cardios } = sessionData;
-      const settings = getSettings();
-      const dateText = formatLong(selectedDateKey);
+      const settings  = getSettings();
+      const dateText  = formatLong(selectedDateKey);
+      const showDate  = opts.showDate !== false;
+      const customTxt = opts.customText || '';
+
+      const CARD = 'background:#F2F4FB;border-radius:12px;padding:14px 16px;margin-bottom:10px';
+      const BADGE = 'display:inline-block;font-size:10px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:10px;color:#041FA6';
+      const TH = 'font-size:10px;font-weight:700;color:#6B6E8A;text-transform:uppercase;letter-spacing:0.3px;padding-bottom:6px;text-align:center';
+      const wUnit = settings.weightUnit.toUpperCase();
 
       let blocksHtml = '';
 
+      // ── EXERCICES ──
       exercises.forEach(e => {
-        const rows = e.sets.map((s, i) => `
-          <tr>
-            <td style="color:#041FA6;font-weight:700;font-size:12px;padding:3px 10px 3px 0;width:30px">S${i + 1}</td>
-            <td style="font-size:13px;font-weight:600;padding:3px 10px 3px 0;text-align:center">${s.reps || '—'}</td>
-            <td style="font-size:13px;font-weight:600;text-align:center">${s.weight !== null && s.weight !== undefined ? s.weight : '—'}</td>
-          </tr>`).join('');
+        const uniformRest = e.sets.length > 0 && e.sets.every(s => s.rest === e.sets[0].rest) ? e.sets[0].rest : null;
+        const hasVaryingRest = !uniformRest && e.sets.some(s => s.rest > 0);
+        const showRestCol = hasVaryingRest;
+        const restHeaderExtra = showRestCol ? `<th style="${TH}">RÉCUP</th>` : '';
+
+        const restMeta = (uniformRest && uniformRest > 0)
+          ? `<div style="font-size:11px;color:#6B6E8A;font-weight:600;margin-bottom:8px">Récup · ${secToMmss(uniformRest)}</div>`
+          : '';
+
+        const rows = e.sets.map((s, i) => {
+          const restCell = showRestCol
+            ? `<td style="font-size:12px;font-weight:600;color:#6B6E8A;text-align:center">${s.rest > 0 ? secToMmss(s.rest) : '—'}</td>`
+            : '';
+          return `
+            <tr>
+              <td style="color:#041FA6;font-weight:800;font-size:11px;padding:4px 8px 4px 0;width:28px">S${i + 1}</td>
+              <td style="font-size:13px;font-weight:700;padding:4px 8px 4px 0;text-align:center">${s.reps || '—'}</td>
+              <td style="font-size:13px;font-weight:700;text-align:center">${s.weight !== null && s.weight !== undefined ? s.weight : '—'}</td>
+              ${restCell}
+            </tr>`;
+        }).join('');
 
         blocksHtml += `
-          <div style="background:#F2F4FB;border-radius:12px;padding:12px 14px;margin-bottom:10px">
-            <div style="font-size:15px;font-weight:800;margin-bottom:8px;text-transform:capitalize">${esc(e.name)}</div>
+          <div style="${CARD}">
+            <div style="font-size:15px;font-weight:800;margin-bottom:4px;text-transform:capitalize">${esc(e.name)}</div>
+            ${restMeta}
             <table style="width:100%;border-collapse:collapse">
               <tr>
-                <th style="font-size:10px;font-weight:700;color:#6B6E8A;text-transform:uppercase;letter-spacing:0.3px;padding-bottom:5px;text-align:left"></th>
-                <th style="font-size:10px;font-weight:700;color:#6B6E8A;text-transform:uppercase;letter-spacing:0.3px;padding-bottom:5px;text-align:center">RÉP</th>
-                <th style="font-size:10px;font-weight:700;color:#6B6E8A;text-transform:uppercase;letter-spacing:0.3px;padding-bottom:5px;text-align:center">${settings.weightUnit.toUpperCase()}</th>
+                <th style="${TH};text-align:left"></th>
+                <th style="${TH}">RÉP</th>
+                <th style="${TH}">${wUnit}</th>
+                ${restHeaderExtra}
               </tr>
               ${rows}
             </table>
           </div>`;
       });
 
+      // ── EMOMS ──
       emoms.forEach(em => {
         const intText = secToMmss(em.interval);
         const exoList = em.exercises.map(ex =>
-          `<div style="font-size:13px;font-weight:600;margin-bottom:2px">${ex.reps ? `${ex.reps}× ` : ''}${esc(ex.name)}</div>`
+          `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #E8ECF6">
+            <span style="font-size:13px;font-weight:700;flex:1;text-transform:capitalize">${esc(ex.name)}</span>
+            ${ex.reps ? `<span style="font-size:13px;font-weight:800;color:#041FA6">${ex.reps}×</span>` : ''}
+          </div>`
         ).join('');
         blocksHtml += `
-          <div style="background:#F2F4FB;border-radius:12px;padding:12px 14px;margin-bottom:10px">
-            <div style="font-size:11px;font-weight:800;color:#041FA6;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">EMOM · ${intText} · ${em.rounds} rounds</div>
+          <div style="${CARD}">
+            <span style="${BADGE}">EMOM</span>
+            <div style="display:flex;gap:16px;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;color:#6B6E8A">Intervalle <span style="color:#0A0C1A">${intText}</span></div>
+              <div style="font-size:12px;font-weight:700;color:#6B6E8A">Rounds <span style="color:#0A0C1A">${em.rounds}</span></div>
+            </div>
             ${exoList}
           </div>`;
       });
 
+      // ── CARDIOS ──
       cardios.forEach(c => {
-        const dur  = (c.durMin || c.durSec) ? `${c.durMin || 0}min${c.durSec ? ` ${c.durSec}s` : ''}` : null;
-        const dist = c.distance ? `${c.distance} km` : null;
-        const sub  = [dur, dist].filter(Boolean).join(' · ');
+        const totalSec = (c.durMin || 0) * 60 + (c.durSec || 0);
+        const durText  = totalSec > 0 ? secToMmss(totalSec) : null;
+        const distText = c.distance ? `${c.distance} km` : null;
+        const metas = [durText, distText].filter(Boolean);
         blocksHtml += `
-          <div style="background:#F2F4FB;border-radius:12px;padding:12px 14px;margin-bottom:10px">
-            <div style="font-size:15px;font-weight:800;text-transform:capitalize">${esc(c.name)}</div>
-            ${sub ? `<div style="font-size:12px;color:#6B6E8A;margin-top:4px">${sub}</div>` : ''}
+          <div style="${CARD}">
+            <span style="${BADGE}">CARDIO</span>
+            <div style="font-size:15px;font-weight:800;text-transform:capitalize;margin-bottom:${metas.length ? '6px' : '0'}">${esc(c.name)}</div>
+            ${metas.map(m => `<div style="font-size:13px;font-weight:700;color:#6B6E8A">${m}</div>`).join('')}
           </div>`;
       });
+
+      const rightSlot = showDate
+        ? `<span style="font-size:13px;color:#6B6E8A;font-weight:600;text-transform:capitalize">${esc(dateText)}</span>`
+        : (customTxt ? `<span style="font-size:13px;color:#6B6E8A;font-weight:600">${esc(customTxt)}</span>` : '');
 
       document.getElementById('export-card').innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <span style="font-family:'PhosphateSolid','Bebas Neue',sans-serif;font-size:30px;color:#041FA6;letter-spacing:1px;line-height:1">ARMAZ</span>
-          <span style="font-size:13px;color:#6B6E8A;font-weight:600;text-transform:capitalize">${esc(dateText)}</span>
+          ${rightSlot}
         </div>
         ${blocksHtml}
-        <div style="margin-top:14px;border-top:1px solid #E8ECF6;padding-top:12px;text-align:center;font-size:11px;color:#aaa;letter-spacing:0.5px">ARMAZ · Coach Fitness</div>
+        <div style="margin-top:14px;border-top:1px solid #E8ECF6;padding-top:12px;text-align:center;font-size:11px;color:#bbb;letter-spacing:0.5px">ARMAZ · Coach Fitness</div>
       `;
     }
 
-    async function saveAsPng() {
+    // ── EXPORT OPTIONS SHEET ───────────────────────────────
+    const exportOptOverlay = document.getElementById('export-opt-overlay');
+    const optShowDate      = document.getElementById('opt-show-date');
+    const optCustomTextRow = document.getElementById('opt-custom-text-row');
+    const optCustomText    = document.getElementById('opt-custom-text');
+    let   _pendingExportData = null;
+
+    optShowDate.addEventListener('change', () => {
+      optCustomTextRow.style.display = optShowDate.checked ? 'none' : 'block';
+    });
+
+    document.getElementById('export-opt-cancel').addEventListener('click', () => {
+      exportOptOverlay.classList.remove('open');
+    });
+
+    document.getElementById('btn-save-png').addEventListener('click', () => {
       const sessionData = collectSessionData();
       if (!sessionData) return;
 
@@ -920,13 +1001,27 @@
         return;
       }
 
+      _pendingExportData = sessionData;
+      optShowDate.checked = true;
+      optCustomTextRow.style.display = 'none';
+      optCustomText.value = '';
+      exportOptOverlay.classList.add('open');
+      lucide.createIcons();
+    });
+
+    document.getElementById('export-opt-go').addEventListener('click', async () => {
+      exportOptOverlay.classList.remove('open');
+
+      const showDate  = optShowDate.checked;
+      const customTxt = optCustomText.value.trim();
+
       const btn = document.getElementById('btn-save-png');
       btn.disabled = true;
       btn.innerHTML = '<i data-lucide="loader"></i> …';
       lucide.createIcons();
 
       try {
-        buildExportCard(sessionData);
+        buildExportCard(_pendingExportData, { showDate, customText: customTxt });
 
         const canvas = await html2canvas(document.getElementById('export-card'), {
           scale: 2,
@@ -954,9 +1049,7 @@
         btn.innerHTML = '<i data-lucide="download"></i> Sauvegarder';
         lucide.createIcons();
       }
-    }
-
-    document.getElementById('btn-save-png').addEventListener('click', saveAsPng);
+    });
 
     // ── SUCCESS STATE ──────────────────────────────────────
     function showSuccess() {
