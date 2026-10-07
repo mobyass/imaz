@@ -194,6 +194,9 @@ function addExercise(data = {}) {
   const nameDrop   = item.querySelector('.exo-sugg-dropdown');
   attachExoSuggestions(nameInput, nameDrop);
 
+  const restInp = item.querySelector('.exo-rest');
+  if (restInp) attachMmssProtection(restInp);
+
   nameInput.addEventListener('input', () => {
     nameInput.classList.remove('input-error');
     if (!document.querySelector('.exo-name-input.input-error'))
@@ -315,6 +318,9 @@ function addSetRow(list, repsVal, restValSec, weightVal, isBodyweight) {
   });
 
   list.appendChild(row);
+
+  const setRestInp = row.querySelector('.set-rest');
+  if (setRestInp && setRestInp.type !== 'hidden') attachMmssProtection(setRestInp);
 }
 
 function renumberSets(list) {
@@ -337,19 +343,11 @@ function mmssToSec(val) {
 }
 
 function attachMmssProtection(inp) {
-  inp.addEventListener('keydown', e => {
-    const pos = inp.selectionStart;
-    const end = inp.selectionEnd;
-    if ((e.key === 'Backspace' && pos === 3 && end === 3) ||
-        (e.key === 'Delete'    && pos === 2 && end === 2)) {
-      e.preventDefault();
-    }
-  });
   inp.addEventListener('input', () => {
-    if (!inp.value.includes(':')) {
-      const digits = inp.value.replace(/\D/g, '').padStart(4, '0').slice(-4);
-      inp.value = digits.slice(0, 2) + ':' + digits.slice(2);
-    }
+    const raw = inp.value.replace(/\D/g, '');
+    if (!raw) return;
+    const digits = raw.slice(-4).padStart(4, '0');
+    inp.value = digits.slice(0, 2) + ':' + digits.slice(2);
   });
   inp.addEventListener('blur', () => {
     inp.value = secToMmss(mmssToSec(inp.value));
@@ -613,7 +611,6 @@ function collectModalData() {
 function saveModal() {
   let hasError = false;
 
-  // Validation noms exercices
   document.querySelectorAll('.exo-item').forEach(item => {
     const nameInput = item.querySelector('.exo-name-input');
     if (!nameInput.value.trim()) { nameInput.classList.add('input-error'); hasError = true; }
@@ -696,7 +693,7 @@ function openSessionViewModal(dateKey) {
           ${sub ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;padding:0 2px">${sub}</div>` : ''}
         </div>`;
     }).join('');
-    content.innerHTML = cardioHtml + session.exercises.map(e => {
+    const innerHtml = cardioHtml + session.exercises.map(e => {
       const sets = normalizeSets(e);
       return `
         <div class="seance-log-exo">
@@ -722,6 +719,7 @@ function openSessionViewModal(dateKey) {
         </div>
       `;
     }).join('');
+    content.innerHTML = `<div class="seance-log">${innerHtml}</div>`;
   }
 
   document.getElementById('session-view-overlay').classList.add('open');

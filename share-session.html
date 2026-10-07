@@ -77,12 +77,27 @@
       padding: 12px 16px;
       background: var(--bg);
       border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
     }
 
-    .share-footer .btn-primary {
-      width: 100%;
+    .share-footer .btn-primary,
+    .share-footer .btn-secondary {
+      flex: 1;
       padding: 14px;
       font-size: 15px;
+    }
+
+    /* ── Export card (off-screen, for html2canvas) ── */
+    #export-card {
+      position: fixed;
+      top: -9999px;
+      left: -9999px;
+      width: 390px;
+      background: #ffffff;
+      padding: 28px 20px 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #0A0C1A;
     }
 
     /* ── Date picker overlay ── */
@@ -354,10 +369,16 @@
   <p class="modal-error share-error" id="modal-save-error" hidden></p>
 
   <div class="share-footer">
+    <button class="btn-secondary" id="btn-save-png">
+      <i data-lucide="download"></i> Sauvegarder
+    </button>
     <button class="btn-primary" id="btn-share">
       <i data-lucide="send"></i> Partager
     </button>
   </div>
+
+  <!-- Off-screen card for PNG export -->
+  <div id="export-card"></div>
 
   <!-- ── TEMPLATE PICKER ── -->
   <div class="modal-overlay" id="tpl-picker-overlay">
@@ -431,6 +452,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
@@ -574,7 +596,7 @@
       });
 
       const emoms = [];
-      document.querySelectorAll('.emom-block').forEach(block => {
+      document.querySelectorAll('.emom-block:not(.cardio-block)').forEach(block => {
         const interval = parseInt(block.querySelector('.emom-int-val').textContent)    || 60;
         const rounds   = parseInt(block.querySelector('.emom-rounds-val').textContent) || 10;
         const exoRows  = [];
@@ -823,6 +845,119 @@
       setTimeout(() => searchOlInput.focus(), 150);
     });
 
+    // ── PNG EXPORT ─────────────────────────────────────────
+    function buildExportCard(sessionData) {
+      const { exercises, emoms, cardios } = sessionData;
+      const settings = getSettings();
+      const dateText = formatLong(selectedDateKey);
+
+      let blocksHtml = '';
+
+      exercises.forEach(e => {
+        const rows = e.sets.map((s, i) => `
+          <tr>
+            <td style="color:#041FA6;font-weight:700;font-size:12px;padding:3px 10px 3px 0;width:30px">S${i + 1}</td>
+            <td style="font-size:13px;font-weight:600;padding:3px 10px 3px 0;text-align:center">${s.reps || '—'}</td>
+            <td style="font-size:13px;font-weight:600;text-align:center">${s.weight !== null && s.weight !== undefined ? s.weight : '—'}</td>
+          </tr>`).join('');
+
+        blocksHtml += `
+          <div style="background:#F2F4FB;border-radius:12px;padding:12px 14px;margin-bottom:10px">
+            <div style="font-size:15px;font-weight:800;margin-bottom:8px;text-transform:capitalize">${esc(e.name)}</div>
+            <table style="width:100%;border-collapse:collapse">
+              <tr>
+                <th style="font-size:10px;font-weight:700;color:#6B6E8A;text-transform:uppercase;letter-spacing:0.3px;padding-bottom:5px;text-align:left"></th>
+                <th style="font-size:10px;font-weight:700;color:#6B6E8A;text-transform:uppercase;letter-spacing:0.3px;padding-bottom:5px;text-align:center">RÉP</th>
+                <th style="font-size:10px;font-weight:700;color:#6B6E8A;text-transform:uppercase;letter-spacing:0.3px;padding-bottom:5px;text-align:center">${settings.weightUnit.toUpperCase()}</th>
+              </tr>
+              ${rows}
+            </table>
+          </div>`;
+      });
+
+      emoms.forEach(em => {
+        const intText = secToMmss(em.interval);
+        const exoList = em.exercises.map(ex =>
+          `<div style="font-size:13px;font-weight:600;margin-bottom:2px">${ex.reps ? `${ex.reps}× ` : ''}${esc(ex.name)}</div>`
+        ).join('');
+        blocksHtml += `
+          <div style="background:#F2F4FB;border-radius:12px;padding:12px 14px;margin-bottom:10px">
+            <div style="font-size:11px;font-weight:800;color:#041FA6;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">EMOM · ${intText} · ${em.rounds} rounds</div>
+            ${exoList}
+          </div>`;
+      });
+
+      cardios.forEach(c => {
+        const dur  = (c.durMin || c.durSec) ? `${c.durMin || 0}min${c.durSec ? ` ${c.durSec}s` : ''}` : null;
+        const dist = c.distance ? `${c.distance} km` : null;
+        const sub  = [dur, dist].filter(Boolean).join(' · ');
+        blocksHtml += `
+          <div style="background:#F2F4FB;border-radius:12px;padding:12px 14px;margin-bottom:10px">
+            <div style="font-size:15px;font-weight:800;text-transform:capitalize">${esc(c.name)}</div>
+            ${sub ? `<div style="font-size:12px;color:#6B6E8A;margin-top:4px">${sub}</div>` : ''}
+          </div>`;
+      });
+
+      document.getElementById('export-card').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <span style="font-family:'PhosphateSolid','Bebas Neue',sans-serif;font-size:30px;color:#041FA6;letter-spacing:1px;line-height:1">ARMAZ</span>
+          <span style="font-size:13px;color:#6B6E8A;font-weight:600;text-transform:capitalize">${esc(dateText)}</span>
+        </div>
+        ${blocksHtml}
+        <div style="margin-top:14px;border-top:1px solid #E8ECF6;padding-top:12px;text-align:center;font-size:11px;color:#aaa;letter-spacing:0.5px">ARMAZ · Coach Fitness</div>
+      `;
+    }
+
+    async function saveAsPng() {
+      const sessionData = collectSessionData();
+      if (!sessionData) return;
+
+      const total = (sessionData.exercises?.length || 0) + (sessionData.emoms?.length || 0) + (sessionData.cardios?.length || 0);
+      if (total === 0) {
+        const err = document.getElementById('modal-save-error');
+        err.textContent = 'Ajoute au moins un exercice avant de sauvegarder.';
+        err.hidden = false;
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-png');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader"></i> …';
+      lucide.createIcons();
+
+      try {
+        buildExportCard(sessionData);
+
+        const canvas = await html2canvas(document.getElementById('export-card'), {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], 'seance-armaz.png', { type: 'image/png' });
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'Ma séance ARMAZ' });
+          } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'seance-armaz.png';
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+          }
+        }, 'image/png');
+      } catch (e) {
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="download"></i> Sauvegarder';
+        lucide.createIcons();
+      }
+    }
+
+    document.getElementById('btn-save-png').addEventListener('click', saveAsPng);
+
     // ── SUCCESS STATE ──────────────────────────────────────
     function showSuccess() {
       document.body.innerHTML = `
@@ -858,6 +993,42 @@
     </button>
   </nav>
   <script>lucide.createIcons();</script>
+  <script>
+  (function() {
+    let startY = 0, pulling = false, indicator = null;
+    const THRESHOLD = 65;
+    function getIndicator() {
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'ptr-indicator';
+        indicator.innerHTML = '<div class="ptr-spinner"></div>';
+        document.body.prepend(indicator);
+      }
+      return indicator;
+    }
+    document.addEventListener('touchstart', e => {
+      if (document.scrollingElement.scrollTop !== 0) return;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (!startY) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 10 && document.scrollingElement.scrollTop === 0) {
+        pulling = true;
+        const ind = getIndicator();
+        const progress = Math.min(dy / THRESHOLD, 1);
+        ind.style.height = `${progress * 44}px`;
+        ind.style.opacity = progress;
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+      if (!pulling) { startY = 0; return; }
+      pulling = false; startY = 0;
+      getIndicator().classList.add('ptr-spinning');
+      setTimeout(() => location.reload(), 300);
+    });
+  })();
+  </script>
 
 </body>
 </html>

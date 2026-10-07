@@ -297,7 +297,7 @@
 
       // Collecter les EMOMs
       const emoms = [];
-      document.querySelectorAll('.emom-block').forEach(block => {
+      document.querySelectorAll('.emom-block:not(.cardio-block)').forEach(block => {
         const interval = mmssToSec(block.querySelector('.emom-int-val').value)         || 60;
         const rounds   = parseInt(block.querySelector('.emom-rounds-val').value)       || 10;
         const exoRows  = [];

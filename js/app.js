@@ -528,7 +528,10 @@ function renderSeancesAvenir() {
     const s     = getSessions()[key];
     const parts = [
       ...(s.exercises || []).map(e => e.name).filter(Boolean),
-      ...(s.emoms     || []).map(em => `EMOM ${em.interval}s`),
+      ...(s.emoms     || []).map(em => {
+        const names = (em.exercises || []).map(e => e.name).filter(Boolean);
+        return names.length ? `EMOM – ${names.join(' & ')}` : `EMOM`;
+      }),
       ...(s.cardios   || []).map(c => c.name).filter(Boolean),
     ];
     const subtitle = parts.length > 0 ? parts.join(', ') : 'Séance planifiée';
@@ -669,3 +672,51 @@ if (_viewKey && getSessions()[_viewKey]) {
   openSessionViewModal(_viewKey);
   history.replaceState(null, '', window.location.pathname);
 }
+
+// ── PULL TO REFRESH (page accueil) ───────────────────────
+(function() {
+  const pageHome = document.getElementById('page-home');
+  let startY = 0, pulling = false, indicator = null;
+  const THRESHOLD = 65;
+
+  function getIndicator() {
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'ptr-indicator';
+      indicator.innerHTML = '<div class="ptr-spinner"></div>';
+      pageHome.prepend(indicator);
+    }
+    return indicator;
+  }
+
+  pageHome.addEventListener('touchstart', e => {
+    if (pageHome.scrollTop !== 0) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  pageHome.addEventListener('touchmove', e => {
+    if (!startY) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 10 && pageHome.scrollTop === 0) {
+      pulling = true;
+      const ind = getIndicator();
+      const progress = Math.min(dy / THRESHOLD, 1);
+      ind.style.height = `${progress * 44}px`;
+      ind.style.opacity = progress;
+    }
+  }, { passive: true });
+
+  pageHome.addEventListener('touchend', () => {
+    if (!pulling) { startY = 0; return; }
+    pulling = false;
+    startY  = 0;
+    const ind = getIndicator();
+    ind.classList.add('ptr-spinning');
+    refreshHome();
+    setTimeout(() => {
+      ind.style.height = '0';
+      ind.style.opacity = '0';
+      setTimeout(() => ind.classList.remove('ptr-spinning'), 300);
+    }, 600);
+  });
+})();

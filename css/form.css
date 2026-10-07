@@ -824,3 +824,10 @@ input.emom-counter-val:focus {
   font-weight: 800;
   border-bottom-width: 0;
 }
+
+/* Template selection */
+.tpl-selected {
+  background: var(--accent-dim) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}

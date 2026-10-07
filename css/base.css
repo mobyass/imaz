@@ -247,3 +247,23 @@ header {
   padding: 8px 12px;
 }
 
+
+/* ── PULL-TO-REFRESH ── */
+#ptr-indicator {
+  height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: height 0.2s ease, opacity 0.2s ease;
+  opacity: 0;
+}
+.ptr-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+}
+.ptr-spinning .ptr-spinner { animation: ptr-spin 0.6s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }

@@ -232,7 +232,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 
 .seance-log-exo {
@@ -388,3 +388,4 @@
   gap: 8px;
   margin-top: 4px;
 }
+

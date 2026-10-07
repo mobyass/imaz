@@ -44,7 +44,7 @@
   <!-- PAGE ACCUEIL -->
   <div class="page active" id="page-home">
 
-    <section class="calendar-section">
+    <section class="calendar-secxion">
       <div class="calendar-nav">
         <button class="cal-arrow" id="prev-week"><i data-lucide="chevron-left"></i></button>
         <span id="month-year"></span>
@@ -191,7 +191,12 @@
         <button class="modal-close" id="tpl-picker-close"><i data-lucide="x"></i></button>
       </div>
       <div id="tpl-picker-list" style="padding:8px 12px 4px;display:flex;flex-direction:column;gap:6px"></div>
-      <div style="display:flex;gap:8px;padding:10px 12px 14px">
+      <div id="tpl-picker-confirm" style="display:none;padding:0 12px 10px">
+        <button class="btn-primary" id="btn-tpl-use" style="width:100%">
+          <i data-lucide="check"></i> Utiliser ce template
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;padding:10px 12px 14px;border-top:1px solid var(--border)">
         <button class="btn-save-as-tpl" id="btn-save-as-tpl" style="flex:1">
           <i data-lucide="bookmark"></i> Sauvegarder
         </button>
@@ -395,13 +400,30 @@
       _tplList.forEach(t => loadTplIntoModal(parseTplData(t)));
     }
 
+    let _selectedTplIdx = null;
+
+    function selectTpl(idx) {
+      _selectedTplIdx = idx;
+      document.querySelectorAll('#tpl-picker-list .btn-secondary').forEach((btn, i) => {
+        btn.classList.toggle('tpl-selected', i === idx);
+      });
+      document.getElementById('tpl-picker-confirm').style.display = 'block';
+      lucide.createIcons();
+    }
+
     function applyTpl(idx) {
       closeTplPicker();
       loadTplIntoModal(parseTplData(_tplList[idx]));
     }
 
+    document.getElementById('btn-tpl-use').addEventListener('click', () => {
+      if (_selectedTplIdx !== null) applyTpl(_selectedTplIdx);
+    });
+
     function closeTplPicker() {
       document.getElementById('tpl-picker-overlay').classList.remove('open');
+      document.getElementById('tpl-picker-confirm').style.display = 'none';
+      _selectedTplIdx = null;
     }
 
     document.getElementById('btn-from-template').addEventListener('click', async () => {
@@ -421,7 +443,7 @@
         list.innerHTML = `<p style="padding:16px 4px;color:var(--text-muted);font-size:14px">Aucun template.</p>`;
       } else {
         list.innerHTML = _tplList.map((t, i) => `
-            <button class="btn-secondary" style="width:100%;justify-content:center" onclick="applyTpl(${i})">
+            <button class="btn-secondary" style="width:100%;justify-content:flex-start" onclick="selectTpl(${i})">
               ${esc(t.name)}
             </button>`).join('');
       }
@@ -516,6 +538,8 @@
   <script>
   // ── CHRONO EMOM ───────────────────────────────────────────
   (function() {
+    if (!document.getElementById('chrono-card')) return;
+
     let elapsed     = 0;
     let ticker      = null;
     let running     = false;
